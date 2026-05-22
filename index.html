@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M&M Safety Accounting</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
+body{background:#0f172a;color:white}
+#loginPage{width:100%;height:100vh;display:flex;justify-content:center;align-items:center}
+.login-box{width:400px;background:#1e293b;padding:35px;border-radius:18px}
+.logo{width:140px;display:block;margin:0 auto 25px}
+.login-box h1{text-align:center;margin-bottom:10px}
+.login-box p{text-align:center;color:#94a3b8;margin-bottom:30px}
+.input-group{margin-bottom:5px}
+.input-group label{display:block;margin-bottom:8px;color:#cbd5e1}
+.input-group input,.input-group select,textarea{width:100%;padding:14px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:white}
+button{cursor:pointer}
+.login-btn,.save-btn{width:100%;padding:14px;border:none;border-radius:10px;background:#2563eb;color:white;font-weight:bold}
+#dashboard{display:none;min-height:100vh}
+.sidebar{width:250px;background:#111827;min-height:100vh;position:fixed;left:0;top:0;padding:25px}
+.sidebar-logo{width:120px;margin-bottom:30px}
+.menu button{width:100%;margin-bottom:12px;padding:14px;border:none;border-radius:10px;background:#1e293b;color:white;text-align:left}
+.menu button:hover{background:#2563eb}
+.main{margin-left:250px;padding:25px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:0px;margin:1px 0}
+.card{background:#1e293b;padding:25px;border-radius:16px;border:1px solid #334155}
+.card-title{color:#94a3b8;margin-bottom:12px}
+.card-value{font-size:30px;font-weight:bold}
+.green{color:#22c55e}.red{color:#ef4444}
+.transactions{background:#1e293b;border-radius:16px;padding:20px;border:1px solid #334155}
+.transactions h2{margin-bottom:20px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:12px;border-bottom:1px solid #334155;text-align:left}
+th{background:#0f172a;color:#94a3b8}
+
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);justify-content:center;align-items:center;z-index:999}
+.modal-box{width:650px;max-width:95%;max-height:90vh;overflow-y:auto;background:#1e293b;border:1px solid #334155;border-radius:18px;padding:25px}
+#addModal .modal-box,#transactionModal .modal-box{width:720px;max-width:95%}
+#cardModal .modal-box{width:1550px;max-width:98%}
+
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.close-btn{background:#ef4444;border:none;color:white;padding:8px 12px;border-radius:8px}
+
+.radio-group{display:flex;flex-wrap:nowrap;gap:10px;margin-top:0px}
+.radio-item{display:flex!important;align-items:center;gap:8px;background:#0f172a;padding:10px 14px;border-radius:10px;cursor:pointer;border:1px solid #334155;color:white;margin-bottom:0!important;white-space:nowrap}
+.radio-item:hover{border-color:#2563eb;background:#172554}
+.radio-item input{width:auto!important;cursor:pointer;accent-color:#2563eb}
+
+#cardModal .cards{
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+}
+
+.card-row{
+    display:grid;
+    grid-template-columns:280px 200px 200px 1fr;
+    gap:15px;
+    align-items:end;
+}
+
+.card-row-types{
+    display:flex;
+    flex-direction:column;
+    gap:0px;
+}
+
+.card-row-types .radio-group{
+    flex-wrap:wrap;
+}
+
+.card-view-group{
+    display:flex;
+    gap:10px;
+    flex-wrap:nowrap;
+}
+
+#cardFrom,
+#cardTo{
+    font-size:14px;
+    padding:12px;
+}
+#cardFrom,#cardTo{font-size:14px;padding:12px}
+
+.action-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+
+@media(max-width:1200px){
+#cardModal .cards{grid-template-columns:1fr 1fr!important}
+}
+
+@media(max-width:900px){
+.sidebar{position:relative;width:100%;min-height:auto}
+.main{margin-left:0}
+.cards{grid-template-columns:1fr}
+.action-row{grid-template-columns:1fr}
+.radio-group{flex-wrap:wrap}
+}
+
+@media(max-width:600px){
+.modal-box{width:100%;padding:20px}
+.radio-group{flex-wrap:wrap}
+}
+</style>
+</head>
+
+<body>
+
+<div id="loginPage">
+    <div class="login-box">
+        <img src="assets/logo.png" class="logo" alt="Logo">
+        <h1>M&M Safety</h1>
+        <p>Accounting Management System</p>
+
+        <div class="input-group">
+            <label>Username</label>
+            <input type="text" id="username">
+        </div>
+
+        <div class="input-group">
+            <label>Password</label>
+            <input type="password" id="password">
+        </div>
+
+        <button class="login-btn" onclick="login()">LOGIN</button>
+    </div>
+</div>
+
+<div id="dashboard">
+    <div class="sidebar">
+        <img src="assets/logo.png" class="sidebar-logo" alt="Logo">
+        <div class="menu">
+            <button onclick="loadDashboard()">Dashboard</button>
+            <button onclick="openAddModal()">Dodaj</button>
+            <button onclick="openTransactionModal()">Transakcije</button>
+            <button onclick="openCardModal()">Kartica</button>
+            <button onclick="openReviewModal()">Pregled</button>
+            <button onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="main">
+        <h1>Dashboard</h1>
+        <div class="cards">
+            <div class="card">
+                <div class="card-title">Trenutno stanje</div>
+                <div class="card-value green" id="stanje">0 RSD</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Ukupan ulaz</div>
+                <div class="card-value green" id="ulaz">0 RSD</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Ukupan izlaz</div>
+                <div class="card-value red" id="izlaz">0 RSD</div>
+            </div>
+        </div>
+
+        <div class="transactions">
+            <h2>Poslednjih 10 transakcija</h2>
+            <table>
+                <thead>
+                    <tr><th>Datum</th><th>Tip</th><th>Naziv</th><th>Faktura</th><th>Iznos</th></tr>
+                </thead>
+                <tbody id="transactionsTable">
+                    <tr><td colspan="5">Nema transakcija</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- DODAJ MODAL -->
+<div class="modal" id="addModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2>Dodaj novi unos</h2>
+            <button class="close-btn" onclick="closeAddModal()">X</button>
+        </div>
+
+        <div class="input-group">
+            <label>Tip</label>
+            <div class="radio-group">
+                <label class="radio-item"><input type="radio" name="addTip" value="Ulaz"> Ulaz</label>
+                <label class="radio-item"><input type="radio" name="addTip" value="Porezi"> Porezi</label>
+                <label class="radio-item"><input type="radio" name="addTip" value="Klijenti"> Klijenti</label>
+                <label class="radio-item"><input type="radio" name="addTip" value="Zaposleni"> Zaposleni</label>
+            </div>
+        </div>
+
+        <div class="input-group"><label>Naziv</label><input type="text" id="addIme"></div>
+        <div class="input-group"><label>Adresa</label><input type="text" id="addAdresa"></div>
+        <div class="input-group"><label>Žiro račun</label><input type="text" id="addZiro"></div>
+        <button class="save-btn" onclick="saveEntity()">SAVE</button>
+    </div>
+</div>
+
+<!-- TRANSACTION MODAL -->
+<div class="modal" id="transactionModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2>Nova transakcija</h2>
+            <button class="close-btn" onclick="closeTransactionModal()">X</button>
+        </div>
+
+        <div class="input-group">
+            <label>Tip</label>
+            <div class="radio-group">
+                <label class="radio-item"><input type="radio" name="transactionTip" value="Ulaz" onchange="loadEntities()"> Ulaz</label>
+                <label class="radio-item"><input type="radio" name="transactionTip" value="Porezi" onchange="loadEntities()"> Porezi</label>
+                <label class="radio-item"><input type="radio" name="transactionTip" value="Klijenti" onchange="loadEntities()"> Klijenti</label>
+                <label class="radio-item"><input type="radio" name="transactionTip" value="Zaposleni" onchange="loadEntities()"> Zaposleni</label>
+            </div>
+        </div>
+
+        <div class="input-group"><label>Naziv</label><input type="text" id="transactionName" list="entityList" oninput="fillEntityData()"><datalist id="entityList"></datalist></div>
+        <div class="input-group"><label>Adresa</label><input type="text" id="transactionAddress" readonly></div>
+        <div class="input-group"><label>Žiro račun</label><input type="text" id="transactionZiro" readonly></div>
+        <div class="input-group"><label>Iznos</label><input type="number" id="transactionAmount" step="0.01"></div>
+        <div class="input-group"><label>Broj fakture</label><input type="text" id="transactionInvoice"></div>
+        <div class="input-group"><label>Notes</label><textarea id="transactionNotes"></textarea></div>
+        <button class="save-btn" onclick="saveTransaction()">SAVE</button>
+    </div>
+</div>
+
+<!-- REVIEW MODAL -->
+<div class="modal" id="reviewModal">
+    <div class="modal-box" style="width:1600px;max-width:95%;">
+        <div class="modal-header">
+            <h2>Pregled transakcija</h2>
+            <button class="close-btn" onclick="closeReviewModal()">X</button>
+        </div>
+        <div class="cards" style="grid-template-columns:repeat(3,1fr);">
+            <div class="input-group"><label>Od</label><input type="date" id="reviewFrom"></div>
+            <div class="input-group"><label>Do</label><input type="date" id="reviewTo"></div>
+            <div class="input-group"><label>&nbsp;</label><button class="save-btn" onclick="loadReview()">Prikaži</button></div>
+        </div>
+        <table>
+            <thead><tr><th>Datum</th><th>Tip</th><th>Naziv</th><th>Faktura</th><th>Iznos</th><th>Status</th><th>Akcija</th></tr></thead>
+            <tbody id="reviewTable"><tr><td colspan="7">Nema podataka</td></tr></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- CARD MODAL -->
+<div class="modal" id="cardModal">
+
+    <div class="modal-box">
+
+        <div class="modal-header">
+            <h2>Kartica</h2>
+
+            <button
+                class="close-btn"
+                onclick="closeCardModal()"
+            >
+                X
+            </button>
+        </div>
+
+        <div class="cards">
+
+            <!-- TIP -->
+
+            <div class="card-row-types">
+
+                <div class="input-group">
+
+                    <label>Tip</label>
+
+                    <div class="radio-group">
+
+                        <label class="radio-item">
+                            <input
+                                type="radio"
+                                name="cardTip"
+                                value="Ulaz"
+                                onchange="loadCardEntities()"
+                            >
+                            Ulaz
+                        </label>
+
+                        <label class="radio-item">
+                            <input
+                                type="radio"
+                                name="cardTip"
+                                value="Porezi"
+                                onchange="loadCardEntities()"
+                            >
+                            Porezi
+                        </label>
+
+                        <label class="radio-item">
+                            <input
+                                type="radio"
+                                name="cardTip"
+                                value="Klijenti"
+                                onchange="loadCardEntities()"
+                            >
+                            Klijenti
+                        </label>
+
+                        <label class="radio-item">
+                            <input
+                                type="radio"
+                                name="cardTip"
+                                value="Zaposleni"
+                                onchange="loadCardEntities()"
+                            >
+                            Zaposleni
+                        </label>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- OSTALO -->
+
+            <div class="card-row">
+
+                <div class="input-group">
+
+                    <label>Naziv</label>
+
+                    <input
+                        type="text"
+                        id="cardName"
+                        list="cardEntityList"
+                    >
+
+                    <datalist id="cardEntityList"></datalist>
+
+                </div>
+
+                <div class="input-group">
+
+                    <label>Od</label>
+
+                    <input
+                        type="date"
+                        id="cardFrom"
+                    >
+
+                </div>
+
+                <div class="input-group">
+
+                    <label>Do</label>
+
+                    <input
+                        type="date"
+                        id="cardTo"
+                    >
+
+                </div>
+
+                <div class="input-group">
+
+                    <label>Prikaz</label>
+
+                    <div class="card-view-group">
+
+                        <label class="radio-item">
+                            <input
+                                type="radio"
+                                name="cardView"
+                                value="single"
+                                checked
+                            >
+                            Pojedinačno
+                        </label>
+
+                        <label class="radio-item">
+                            <input
+                                type="radio"
+                                name="cardView"
+                                value="monthly"
+                            >
+                            Po mesecima
+                        </label>
+
+                        <label class="radio-item">
+                            <input
+                                type="radio"
+                                name="cardView"
+                                value="yearly"
+                            >
+                            Po godinama
+                        </label>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- DUGMAD -->
+
+        <div class="action-row">
+
+            <button
+                class="save-btn"
+                onclick="loadCard()"
+            >
+                PRIKAŽI
+            </button>
+
+            <button
+                class="save-btn"
+                style="background:#16a34a;"
+                onclick="printCard()"
+            >
+                PRINT / PDF
+            </button>
+
+        </div>
+
+        <!-- TABELA -->
+
+        <table>
+
+            <thead id="cardHead"></thead>
+
+            <tbody id="cardTable">
+
+                <tr>
+                    <td colspan="6">
+                        Nema podataka
+                    </td>
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbx4UAAB4Pdj-yAT0jycublUFGYLmsjLJN5El4MT0jrxXdu8ZEZNQztnwtoK-0CnE4DgDw/exec";
+
+let entitiesData = [];
+let lastTransactionData = null;
+
+function getCheckedValue(name){
+    const el = document.querySelector(`input[name="${name}"]:checked`);
+    return el ? el.value : "";
+}
+
+function resetRadioGroup(name){
+    document.querySelectorAll(`input[name="${name}"]`).forEach(el => el.checked = false);
+}
+
+async function login(){
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+    if(username === "" || password === ""){alert("Unesite username i password");return;}
+    try{
+        const res = await fetch(API_URL + "?action=login&username=" + encodeURIComponent(username) + "&password=" + encodeURIComponent(password));
+        const data = await res.json();
+        if(data.success){document.getElementById("loginPage").style.display = "none";document.getElementById("dashboard").style.display = "block";loadDashboard();}
+        else{alert(data.message || "Pogrešan username ili password");}
+    }catch(error){alert("Greška pri povezivanju sa Google Sheet API");console.log(error);}
+}
+
+function logout(){document.getElementById("dashboard").style.display = "none";document.getElementById("loginPage").style.display = "flex";}
+
+async function loadDashboard(){
+    try{
+        const res = await fetch(API_URL + "?action=getDashboard");
+        const data = await res.json();
+        if(!data.success){alert("Greška pri učitavanju dashboarda");return;}
+        document.getElementById("stanje").innerText = formatMoney(data.stanje) + " RSD";
+        document.getElementById("ulaz").innerText = formatMoney(data.ulaz) + " RSD";
+        document.getElementById("izlaz").innerText = formatMoney(data.izlaz) + " RSD";
+        let html = "";
+        if(!data.poslednje || data.poslednje.length === 0){html = `<tr><td colspan="5">Nema transakcija</td></tr>`;}
+        else{
+            data.poslednje.forEach(t => {
+                const isUlaz = t.tip === "Ulaz";
+                const color = isUlaz ? "green" : "red";
+                html += `<tr><td>${formatDate(t.datum)}</td><td>${t.tip || ""}</td><td>${t.ime || ""}</td><td>${t.brojFakture || ""}</td><td class="${color}">${formatSignedAmount(t.tip, t.iznos)}</td></tr>`;
+            });
+        }
+        document.getElementById("transactionsTable").innerHTML = html;
+    }catch(error){alert("Greška pri učitavanju podataka");console.log(error);}
+}
+
+function openAddModal(){resetAddModal();document.getElementById("addModal").style.display = "flex";}
+function closeAddModal(){resetAddModal();document.getElementById("addModal").style.display = "none";}
+function resetAddModal(){resetRadioGroup("addTip");document.getElementById("addIme").value = "";document.getElementById("addAdresa").value = "";document.getElementById("addZiro").value = "";}
+
+async function saveEntity(){
+    const tip = getCheckedValue("addTip");
+    const ime = document.getElementById("addIme").value.trim();
+    const adresa = document.getElementById("addAdresa").value.trim();
+    const ziro = document.getElementById("addZiro").value.trim();
+    if(tip === ""){alert("Izaberite tip");return;}
+    if(ime === ""){alert("Unesite naziv");return;}
+    try{
+        const url = API_URL + "?action=addEntity" + "&tip=" + encodeURIComponent(tip) + "&ime=" + encodeURIComponent(ime) + "&adresa=" + encodeURIComponent(adresa) + "&ziro=" + encodeURIComponent(ziro);
+        const res = await fetch(url);
+        const data = await res.json();
+        if(data.success){alert("Uspešno sačuvano");closeAddModal();}
+        else{alert(data.message || "Greška pri čuvanju");}
+    }catch(error){alert("Greška pri upisu u Google Sheet");console.log(error);}
+}
+
+function openTransactionModal(){resetTransactionModal();document.getElementById("transactionModal").style.display = "flex";}
+function closeTransactionModal(){resetTransactionModal();document.getElementById("transactionModal").style.display = "none";}
+function resetTransactionModal(){resetRadioGroup("transactionTip");document.getElementById("transactionName").value = "";document.getElementById("transactionAddress").value = "";document.getElementById("transactionZiro").value = "";document.getElementById("transactionAmount").value = "";document.getElementById("transactionInvoice").value = "";document.getElementById("transactionNotes").value = "";document.getElementById("entityList").innerHTML = "";entitiesData = [];}
+
+async function loadEntities(){
+    const tip = getCheckedValue("transactionTip");
+    document.getElementById("transactionName").value = "";document.getElementById("transactionAddress").value = "";document.getElementById("transactionZiro").value = "";document.getElementById("entityList").innerHTML = "";entitiesData = [];
+    if(tip === "") return;
+    try{
+        const res = await fetch(API_URL + "?action=getEntities&tip=" + encodeURIComponent(tip));
+        const data = await res.json();
+        if(!data.success){alert("Greška pri učitavanju liste");return;}
+        entitiesData = data.data;
+        let html = "";entitiesData.forEach(item => {html += `<option value="${escapeHtml(item.ime)}"></option>`;});
+        document.getElementById("entityList").innerHTML = html;
+    }catch(error){alert("Greška pri učitavanju liste");console.log(error);}
+}
+
+function fillEntityData(){
+    const value = document.getElementById("transactionName").value;
+    const found = entitiesData.find(x => x.ime === value);
+    if(!found){document.getElementById("transactionAddress").value = "";document.getElementById("transactionZiro").value = "";return;}
+    document.getElementById("transactionAddress").value = found.adresa || "";
+    document.getElementById("transactionZiro").value = found.ziro || "";
+}
+
+async function saveTransaction(){
+    const tip = getCheckedValue("transactionTip");
+    const ime = document.getElementById("transactionName").value.trim();
+    const adresa = document.getElementById("transactionAddress").value.trim();
+    const ziro = document.getElementById("transactionZiro").value.trim();
+    const iznos = document.getElementById("transactionAmount").value;
+    const brojFakture = document.getElementById("transactionInvoice").value.trim();
+    const notes = document.getElementById("transactionNotes").value.trim();
+    if(tip === ""){alert("Izaberite tip");return;}
+    if(ime === ""){alert("Izaberite naziv");return;}
+    if(iznos === ""){alert("Unesite iznos");return;}
+    const url = API_URL + "?action=addTransaction" + "&tip=" + encodeURIComponent(tip) + "&ime=" + encodeURIComponent(ime) + "&adresa=" + encodeURIComponent(adresa) + "&ziro=" + encodeURIComponent(ziro) + "&brojFakture=" + encodeURIComponent(brojFakture) + "&iznos=" + encodeURIComponent(iznos) + "&notes=" + encodeURIComponent(notes);
+    let data;
+    try{const res = await fetch(url);data = await res.json();}
+    catch(error){alert("Greška pri upisu u Google Sheet");console.log(error);return;}
+    if(!data.success){alert(data.message || "Greška");return;}
+    lastTransactionData = {datum:new Date(),tip,ime,adresa,ziro,iznos,brojFakture,notes};
+    const printNow = confirm("Transakcija je sačuvana. Da li želite da odštampate dokument?");
+    if(printNow){printLastTransaction();}
+    closeTransactionModal();loadDashboard();
+}
+
+function openReviewModal(){setCurrentMonth();document.getElementById("reviewModal").style.display = "flex";loadReview();}
+function closeReviewModal(){document.getElementById("reviewModal").style.display = "none";}
+function setCurrentMonth(){const now = new Date();const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);document.getElementById("reviewFrom").value = toInputDate(firstDay);document.getElementById("reviewTo").value = toInputDate(lastDay);}
+
+async function loadReview(){
+    const from = document.getElementById("reviewFrom").value;const to = document.getElementById("reviewTo").value;
+    try{
+        const url = API_URL + "?action=getTransactions" + "&from=" + encodeURIComponent(from) + "&to=" + encodeURIComponent(to);
+        const res = await fetch(url);const data = await res.json();
+        if(!data.success){alert("Greška pri učitavanju pregleda");return;}
+        let html = "";
+        if(!data.data || data.data.length === 0){html = `<tr><td colspan="7">Nema transakcija za izabrani period</td></tr>`;}
+        else{data.data.forEach(t => {const isUlaz = t.tip === "Ulaz";const color = isUlaz ? "green" : "red";const disabled = t.status === "STORNO" ? "disabled" : "";html += `<tr><td>${formatDate(t.datum)}</td><td>${t.tip || ""}</td><td>${t.ime || ""}</td><td>${t.brojFakture || ""}</td><td class="${color}">${formatSignedAmount(t.tip, t.iznos)}</td><td>${t.status || ""}</td><td><button onclick="stornoTransaction('${t.id}')" ${disabled}>STORNO</button></td></tr>`;});}
+        document.getElementById("reviewTable").innerHTML = html;
+    }catch(error){alert("Greška pri učitavanju pregleda");console.log(error);}
+}
+
+async function stornoTransaction(id){
+    if(!confirm("Da li ste sigurni da želite da stornirate transakciju?")){return;}
+    try{const res = await fetch(API_URL + "?action=storno&id=" + encodeURIComponent(id));const data = await res.json();if(data.success){alert("Transakcija je stornirana");loadReview();loadDashboard();}else{alert(data.message || "Greška pri storniranju");}}
+    catch(error){alert("Greška pri storniranju");console.log(error);}
+}
+
+function openCardModal(){resetCardModal();setCurrentMonthCard();document.getElementById("cardModal").style.display = "flex";}
+function closeCardModal(){resetCardModal();document.getElementById("cardModal").style.display = "none";}
+function resetCardModal(){resetRadioGroup("cardTip");document.getElementById("cardName").value = "";document.getElementById("cardEntityList").innerHTML = "";document.querySelector('input[name="cardView"][value="single"]').checked = true;document.getElementById("cardHead").innerHTML = "";document.getElementById("cardTable").innerHTML = `<tr><td colspan="6">Nema podataka</td></tr>`;}
+function setCurrentMonthCard(){const now = new Date();const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);document.getElementById("cardFrom").value = toInputDate(firstDay);document.getElementById("cardTo").value = toInputDate(lastDay);}
+
+async function loadCardEntities(){
+    const tip = getCheckedValue("cardTip");
+    document.getElementById("cardName").value = "";document.getElementById("cardEntityList").innerHTML = "";
+    if(tip === "") return;
+    try{const res = await fetch(API_URL + "?action=getEntities&tip=" + encodeURIComponent(tip));const data = await res.json();if(!data.success){alert("Greška pri učitavanju liste");return;}let html = "";data.data.forEach(item => {html += `<option value="${escapeHtml(item.ime)}"></option>`;});document.getElementById("cardEntityList").innerHTML = html;}
+    catch(error){alert("Greška pri učitavanju kartice");console.log(error);}
+}
+
+async function loadCard(){
+    const tip = getCheckedValue("cardTip");
+    const ime = document.getElementById("cardName").value;
+    const from = document.getElementById("cardFrom").value;
+    const to = document.getElementById("cardTo").value;
+    const view = getCheckedValue("cardView") || "single";
+    try{const url = API_URL + "?action=getCard" + "&tip=" + encodeURIComponent(tip) + "&ime=" + encodeURIComponent(ime) + "&from=" + encodeURIComponent(from) + "&to=" + encodeURIComponent(to) + "&view=" + encodeURIComponent(view);const res = await fetch(url);const data = await res.json();if(!data.success){alert("Greška pri učitavanju kartice");return;}renderCard(data, view);}
+    catch(error){alert("Greška pri učitavanju kartice");console.log(error);}
+}
+
+function renderCard(data, view){
+    let head = "";let body = "";
+    if(view === "single"){
+        head = `<tr><th>Datum</th><th>Tip</th><th>Naziv</th><th>Faktura</th><th>Iznos</th><th>Notes</th></tr>`;
+        if(!data.data || data.data.length === 0){body = `<tr><td colspan="6">Nema podataka</td></tr>`;}
+        else{data.data.forEach(t => {const isUlaz = t.tip === "Ulaz";const color = isUlaz ? "green" : "red";body += `<tr><td>${formatDate(t.datum)}</td><td>${t.tip || ""}</td><td>${t.ime || ""}</td><td>${t.brojFakture || ""}</td><td class="${color}">${formatSignedAmount(t.tip, t.iznos)}</td><td>${t.notes || ""}</td></tr>`;});}
+    }else{
+        head = `<tr><th>Period</th><th>Ukupan iznos</th></tr>`;
+        if(!data.data || data.data.length === 0){body = `<tr><td colspan="2">Nema podataka</td></tr>`;}
+        else{data.data.forEach(t => {body += `<tr><td>${t.period}</td><td>${formatMoney(t.iznos)} RSD</td></tr>`;});}
+    }
+    document.getElementById("cardHead").innerHTML = head;document.getElementById("cardTable").innerHTML = body;
+}
+
+function printCard(){
+    const table = document.getElementById("cardModal").querySelector("table").outerHTML.replace(/\+/g, "");
+    const tip = getCheckedValue("cardTip") || "Sve";const ime = document.getElementById("cardName").value || "Sve";const from = document.getElementById("cardFrom").value;const to = document.getElementById("cardTo").value;
+    const win = window.open("", "_blank");
+    win.document.write(`<html><head><title>Kartica</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111}.header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:15px;margin-bottom:25px}.logo{width:130px}h1{margin:0;font-size:26px}.info{margin-bottom:20px;font-size:14px}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #999;padding:8px;text-align:left;font-size:13px}th{background:#f1f5f9}.footer{margin-top:40px;font-size:12px;color:#555;text-align:center}</style></head><body><div class="header"><div><h1>Kartica</h1><div>M&M Safety Accounting</div></div><img src="assets/logo.png" class="logo"></div><div class="info"><strong>Tip:</strong> ${tip}<br><strong>Naziv:</strong> ${ime}<br><strong>Period:</strong> ${from} - ${to}</div>${table}<div class="footer">Dokument generisan iz M&M Safety Accounting aplikacije</div></body></html>`);
+    win.document.close();setTimeout(() => {win.print();}, 500);
+}
+
+function printLastTransaction(){
+    if(!lastTransactionData){alert("Prvo sačuvajte transakciju");return;}
+    const t = lastTransactionData;const win = window.open("", "_blank");
+    win.document.write(`<html><head><title>Transakcija</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111}.header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #111;padding-bottom:15px;margin-bottom:30px}.logo{width:130px}table{width:100%;border-collapse:collapse;margin-top:20px}td{border:1px solid #999;padding:12px;font-size:14px}.label{width:220px;font-weight:bold;background:#f1f5f9}.amount{font-size:22px;font-weight:bold}</style></head><body><div class="header"><div><h1>Transakcija</h1><div>M&M Safety Accounting</div></div><img src="assets/logo.png" class="logo"></div><table><tr><td class="label">Datum</td><td>${formatDate(t.datum)}</td></tr><tr><td class="label">Tip</td><td>${t.tip}</td></tr><tr><td class="label">Naziv</td><td>${t.ime}</td></tr><tr><td class="label">Adresa</td><td>${t.adresa}</td></tr><tr><td class="label">Žiro račun</td><td>${t.ziro}</td></tr><tr><td class="label">Broj fakture</td><td>${t.brojFakture || ""}</td></tr><tr><td class="label">Notes</td><td>${t.notes || ""}</td></tr><tr><td class="label">Iznos</td><td class="amount">${formatSignedAmount(t.tip, t.iznos)} RSD</td></tr></table></body></html>`);
+    win.document.close();setTimeout(() => {win.print();}, 500);
+}
+
+function toInputDate(date){const y = date.getFullYear();const m = String(date.getMonth() + 1).padStart(2, "0");const d = String(date.getDate()).padStart(2, "0");return `${y}-${m}-${d}`;}
+function formatMoney(num){return Number(num || 0).toLocaleString("sr-RS", {minimumFractionDigits: 2,maximumFractionDigits: 2});}
+function formatSignedAmount(tip, iznos){const value = Number(iznos || 0);if(tip === "Ulaz"){return formatMoney(value);}return "-" + formatMoney(Math.abs(value));}
+function formatDate(date){if(!date) return "";return new Date(date).toLocaleDateString("sr-RS");}
+function escapeHtml(value){return String(value || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");}
+</script>
+
+</body>
+</html>
