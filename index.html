@@ -39,6 +39,7 @@ th{background:#0f172a;color:#94a3b8}
 .modal-box{width:650px;max-width:95%;max-height:90vh;overflow-y:auto;background:#1e293b;border:1px solid #334155;border-radius:18px;padding:25px}
 #addModal .modal-box,#transactionModal .modal-box{width:720px;max-width:95%}
 #cardModal .modal-box{width:1550px;max-width:98%}
+#cardModal .action-row{grid-template-columns:1fr 1fr 1fr 1fr}
 
 .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
 .close-btn{background:#ef4444;border:none;color:white;padding:8px 12px;border-radius:8px}
@@ -85,12 +86,21 @@ th{background:#0f172a;color:#94a3b8}
 #cardFrom,#cardTo{font-size:14px;padding:12px}
 
 .action-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px}
+.document-action-box{display:none;background:#0f172a;border:1px solid #334155;border-radius:14px;padding:18px;margin-top:18px}
+.document-action-box h3{margin-bottom:8px;font-size:18px}
+.document-action-box p{color:#cbd5e1;margin-bottom:15px}
+.document-action-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.doc-status{margin-top:12px;color:#cbd5e1;font-weight:bold;min-height:22px}
+.doc-btn-save{background:#0ea5e9!important}
+.doc-btn-print{background:#16a34a!important}
+.doc-btn-both{background:#7c3aed!important}
 
 @media(max-width:1200px){
 #cardModal .cards{grid-template-columns:1fr 1fr!important}
 }
 
 @media(max-width:900px){
+.document-action-grid{grid-template-columns:1fr}
 .sidebar{position:relative;width:100%;min-height:auto}
 .main{margin-left:0}
 .cards{grid-template-columns:1fr}
@@ -220,7 +230,28 @@ th{background:#0f172a;color:#94a3b8}
         <div class="input-group"><label>Iznos</label><input type="number" id="transactionAmount" step="0.01"></div>
         <div class="input-group"><label>Broj fakture</label><input type="text" id="transactionInvoice"></div>
         <div class="input-group"><label>Notes</label><textarea id="transactionNotes"></textarea></div>
-        <button class="save-btn" onclick="saveTransaction()">SAVE</button>
+        <button class="save-btn" id="transactionSaveBtn" onclick="saveTransaction()">SAVE</button>
+
+        <div class="document-action-box" id="transactionDocActions">
+            <h3>Transakcija je sačuvana</h3>
+            <p>Izaberite šta želite da uradite sa dokumentom.</p>
+
+            <div class="document-action-grid">
+                <button class="save-btn doc-btn-save" onclick="handleTransactionDocumentAction('save')">
+                    SAVE PDF
+                </button>
+
+                <button class="save-btn doc-btn-print" onclick="handleTransactionDocumentAction('print')">
+                    PRINT
+                </button>
+
+                <button class="save-btn doc-btn-both" onclick="handleTransactionDocumentAction('both')">
+                    SAVE PDF & PRINT
+                </button>
+            </div>
+
+            <div class="doc-status" id="transactionDocStatus"></div>
+        </div>
     </div>
 </div>
 
@@ -411,22 +442,29 @@ th{background:#0f172a;color:#94a3b8}
             </button>
 
             <button
-                class="save-btn"
-                style="background:#16a34a;"
-                onclick="printCard()"
-            >
-                PRINT / PDF
-            </button>
-
-            <button
-                class="save-btn"
-                style="background:#0ea5e9;"
-                onclick="saveCardToDrive()"
+                class="save-btn doc-btn-save"
+                onclick="handleCardDocumentAction('save')"
             >
                 SAVE PDF
             </button>
 
+            <button
+                class="save-btn doc-btn-print"
+                onclick="handleCardDocumentAction('print')"
+            >
+                PRINT
+            </button>
+
+            <button
+                class="save-btn doc-btn-both"
+                onclick="handleCardDocumentAction('both')"
+            >
+                SAVE PDF & PRINT
+            </button>
+
         </div>
+
+        <div class="doc-status" id="cardDocStatus"></div>
 
         <!-- TABELA -->
 
@@ -523,7 +561,20 @@ async function saveEntity(){
 
 function openTransactionModal(){resetTransactionModal();document.getElementById("transactionModal").style.display = "flex";}
 function closeTransactionModal(){resetTransactionModal();document.getElementById("transactionModal").style.display = "none";}
-function resetTransactionModal(){resetRadioGroup("transactionTip");document.getElementById("transactionName").value = "";document.getElementById("transactionAddress").value = "";document.getElementById("transactionZiro").value = "";document.getElementById("transactionAmount").value = "";document.getElementById("transactionInvoice").value = "";document.getElementById("transactionNotes").value = "";document.getElementById("entityList").innerHTML = "";entitiesData = [];}
+function resetTransactionModal(){
+    resetRadioGroup("transactionTip");
+    document.getElementById("transactionName").value = "";
+    document.getElementById("transactionAddress").value = "";
+    document.getElementById("transactionZiro").value = "";
+    document.getElementById("transactionAmount").value = "";
+    document.getElementById("transactionInvoice").value = "";
+    document.getElementById("transactionNotes").value = "";
+    document.getElementById("entityList").innerHTML = "";
+    document.getElementById("transactionDocActions").style.display = "none";
+    document.getElementById("transactionDocStatus").innerText = "";
+    document.getElementById("transactionSaveBtn").style.display = "block";
+    entitiesData = [];
+}
 
 async function loadEntities(){
     const tip = getCheckedValue("transactionTip");
@@ -555,23 +606,43 @@ async function saveTransaction(){
     const iznos = document.getElementById("transactionAmount").value;
     const brojFakture = document.getElementById("transactionInvoice").value.trim();
     const notes = document.getElementById("transactionNotes").value.trim();
+
     if(tip === ""){alert("Izaberite tip");return;}
     if(ime === ""){alert("Izaberite naziv");return;}
     if(iznos === ""){alert("Unesite iznos");return;}
-    const url = API_URL + "?action=addTransaction" + "&tip=" + encodeURIComponent(tip) + "&ime=" + encodeURIComponent(ime) + "&adresa=" + encodeURIComponent(adresa) + "&ziro=" + encodeURIComponent(ziro) + "&brojFakture=" + encodeURIComponent(brojFakture) + "&iznos=" + encodeURIComponent(iznos) + "&notes=" + encodeURIComponent(notes);
+
+    document.getElementById("transactionDocStatus").innerText = "Čuvam transakciju...";
+
+    const url = API_URL + "?action=addTransaction"
+        + "&tip=" + encodeURIComponent(tip)
+        + "&ime=" + encodeURIComponent(ime)
+        + "&adresa=" + encodeURIComponent(adresa)
+        + "&ziro=" + encodeURIComponent(ziro)
+        + "&brojFakture=" + encodeURIComponent(brojFakture)
+        + "&iznos=" + encodeURIComponent(iznos)
+        + "&notes=" + encodeURIComponent(notes);
+
     let data;
-    try{const res = await fetch(url);data = await res.json();}
-    catch(error){alert("Greška pri upisu u Google Sheet");console.log(error);return;}
-    if(!data.success){alert(data.message || "Greška");return;}
+    try{
+        const res = await fetch(url);
+        data = await res.json();
+    }catch(error){
+        document.getElementById("transactionDocStatus").innerText = "Greška pri upisu u Google Sheet.";
+        console.log(error);
+        return;
+    }
+
+    if(!data.success){
+        document.getElementById("transactionDocStatus").innerText = data.message || "Greška pri čuvanju.";
+        return;
+    }
+
     lastTransactionData = {datum:new Date(),tip,ime,adresa,ziro,iznos,brojFakture,notes};
-    closeTransactionModal();
     loadDashboard();
 
-    const printNow = confirm("Transakcija je sačuvana. Da li želite da odštampate dokument?");
-    if(printNow){printLastTransaction();}
-
-    const saveNow = confirm("Da li želite da sačuvate PDF dokument u Google Drive?");
-    if(saveNow){await saveLastTransactionToDrive();}
+    document.getElementById("transactionSaveBtn").style.display = "none";
+    document.getElementById("transactionDocActions").style.display = "block";
+    document.getElementById("transactionDocStatus").innerText = "Transakcija je sačuvana. Izaberite akciju za dokument.";
 }
 
 function openReviewModal(){setCurrentMonth();document.getElementById("reviewModal").style.display = "flex";loadReview();}
@@ -672,7 +743,6 @@ function buildCardDocumentHtml(){
 }
 
 function printCard(){
-    closeCardModal();
     const win = window.open("", "_blank");
     win.document.write(buildCardDocumentHtml());
     win.document.close();
@@ -680,20 +750,48 @@ function printCard(){
 }
 
 async function saveCardToDrive(){
-    closeCardModal();
     const ime = document.getElementById("cardName").value || "Kartica";
     const from = document.getElementById("cardFrom").value;
     const to = document.getElementById("cardTo").value;
     const datum = new Date().toISOString().slice(0,10);
     const brojFakture = (from && to) ? (from + "_" + to) : "KARTICA";
 
-    await saveDocumentToDrive({
+    return await saveDocumentToDrive({
         docType:"card",
         html:buildCardDocumentHtml(),
         datum,
         ime,
         brojFakture
     });
+}
+
+async function handleCardDocumentAction(action){
+    const status = document.getElementById("cardDocStatus");
+    status.innerText = "";
+
+    if(action === "print"){
+        status.innerText = "Otvaram dokument za štampu...";
+        printCard();
+        return;
+    }
+
+    if(action === "save"){
+        status.innerText = "Čuvam PDF u Google Drive...";
+        const data = await saveCardToDrive();
+        status.innerText = data && data.success ? "PDF je sačuvan: " + data.fileName : "Greška pri čuvanju PDF-a.";
+        return;
+    }
+
+    if(action === "both"){
+        status.innerText = "Čuvam PDF u Google Drive...";
+        const data = await saveCardToDrive();
+        if(data && data.success){
+            status.innerText = "PDF je sačuvan. Otvaram štampu...";
+            printCard();
+        }else{
+            status.innerText = "Greška pri čuvanju PDF-a.";
+        }
+    }
 }
 
 function buildTransactionDocumentHtml(){
@@ -705,7 +803,10 @@ function buildTransactionDocumentHtml(){
 }
 
 function printLastTransaction(){
-    if(!lastTransactionData){alert("Prvo sačuvajte transakciju");return;}
+    if(!lastTransactionData){
+        document.getElementById("transactionDocStatus").innerText = "Prvo sačuvajte transakciju.";
+        return;
+    }
     const win = window.open("", "_blank");
     win.document.write(buildTransactionDocumentHtml());
     win.document.close();
@@ -713,16 +814,47 @@ function printLastTransaction(){
 }
 
 async function saveLastTransactionToDrive(){
-    if(!lastTransactionData){alert("Prvo sačuvajte transakciju");return;}
+    if(!lastTransactionData){
+        return {success:false, message:"Prvo sačuvajte transakciju."};
+    }
     const t = lastTransactionData;
 
-    await saveDocumentToDrive({
+    return await saveDocumentToDrive({
         docType:"transaction",
         html:buildTransactionDocumentHtml(),
         datum:new Date(t.datum).toISOString().slice(0,10),
         ime:t.ime,
         brojFakture:t.brojFakture || "BEZ-FAKTURE"
     });
+}
+
+async function handleTransactionDocumentAction(action){
+    const status = document.getElementById("transactionDocStatus");
+    status.innerText = "";
+
+    if(action === "print"){
+        status.innerText = "Otvaram dokument za štampu...";
+        printLastTransaction();
+        return;
+    }
+
+    if(action === "save"){
+        status.innerText = "Čuvam PDF u Google Drive...";
+        const data = await saveLastTransactionToDrive();
+        status.innerText = data && data.success ? "PDF je sačuvan: " + data.fileName : (data.message || "Greška pri čuvanju PDF-a.");
+        return;
+    }
+
+    if(action === "both"){
+        status.innerText = "Čuvam PDF u Google Drive...";
+        const data = await saveLastTransactionToDrive();
+        if(data && data.success){
+            status.innerText = "PDF je sačuvan. Otvaram štampu...";
+            printLastTransaction();
+        }else{
+            status.innerText = data.message || "Greška pri čuvanju PDF-a.";
+        }
+    }
 }
 
 async function saveDocumentToDrive(payload){
@@ -740,17 +872,11 @@ async function saveDocumentToDrive(payload){
             body:body
         });
 
-        const data = await res.json();
+        return await res.json();
 
-        if(data.success){
-            alert("PDF je sačuvan u Google Drive.\n" + data.fileName);
-            if(data.url){window.open(data.url, "_blank");}
-        }else{
-            alert(data.message || "Greška pri čuvanju PDF-a");
-        }
     }catch(error){
-        alert("Greška pri čuvanju PDF-a u Google Drive");
         console.log(error);
+        return {success:false, message:"Greška pri čuvanju PDF-a u Google Drive"};
     }
 }
 
