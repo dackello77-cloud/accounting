@@ -823,8 +823,8 @@ function buildCardDocumentHtml(){
     return `<html><head><title>Kartica</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111}.header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:15px;margin-bottom:25px}.logo{width:130px}h1{margin:0;font-size:26px}.info{margin-bottom:20px;font-size:14px}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #999;padding:8px;text-align:left;font-size:13px}th{background:#f1f5f9}.footer{margin-top:40px;font-size:12px;color:#555;text-align:center}</style></head><body><div class="header"><div><h1>Kartica</h1><div>M&M Safety Accounting</div></div><img src="${logoUrl}" class="logo"></div><div class="info"><strong>Tip:</strong> ${escapeHtml(tip)}<br><strong>Naziv:</strong> ${escapeHtml(ime)}<br><strong>Period:</strong> ${escapeHtml(from)} - ${escapeHtml(to)}</div>${table}<div class="footer">Dokument generisan iz M&M Safety Accounting aplikacije</div></body></html>`;
 }
 
-function openPrintWindow(html){
-    const win = window.open("", "_blank");
+function openPrintWindow(html, existingWindow){
+    const win = existingWindow || window.open("", "_blank");
 
     if(!win){
         alert("Browser je blokirao popup. Dozvolite popups za ovu stranicu.");
@@ -1044,20 +1044,18 @@ function buildReceiptPrintSection(){
         return "";
     }
 
-    const name = escapeHtml(selectedReceiptData.name || "Račun");
     const mimeType = String(selectedReceiptData.mimeType || "");
     const dataUrl = selectedReceiptData.dataUrl || "";
-    const driveUrl = selectedReceiptData.url || "";
 
     if(dataUrl && mimeType.indexOf("image/") === 0){
-        return `<div class="receipt-section"><h2>Račun</h2><div class="receipt-note">${name}</div><img class="receipt-image" src="${dataUrl}" alt="Račun"></div>`;
+        return `<div class="receipt-section"><img class="receipt-image" src="${dataUrl}" alt=""></div>`;
     }
 
     if(dataUrl && mimeType === "application/pdf"){
-        return `<div class="receipt-section"><h2>Račun PDF</h2><div class="receipt-note">${name}</div><embed class="receipt-frame" src="${dataUrl}" type="application/pdf"></embed><div class="receipt-note">Ako browser ne prikaže PDF u štampi, otvorite račun iz Google Drive-a: ${escapeHtml(driveUrl)}</div></div>`;
+        return `<div class="receipt-section"><embed class="receipt-frame" src="${dataUrl}" type="application/pdf"></embed></div>`;
     }
 
-    return `<div class="receipt-section no-blank"><h2>Račun</h2><div class="receipt-note">${name}</div><div class="receipt-link-print">Račun je sačuvan u Google Drive folderu.<br>${escapeHtml(driveUrl)}</div></div>`;
+    return "";
 }
 
 function buildTransactionDocumentHtml(){
@@ -1111,14 +1109,25 @@ async function handleTransactionDocumentAction(action){
     }
 
     if(action === "both"){
+        const printWindow = window.open("", "_blank");
+        if(!printWindow){
+            alert("Browser je blokirao popup. Dozvolite popups za ovu stranicu.");
+            return;
+        }
+
+        printWindow.document.write("<html><body style='font-family:Arial;padding:30px'>Pripremam dokument za štampu...</body></html>");
+        printWindow.document.close();
+
         const html = buildTransactionDocumentHtml();
         status.innerText = "Čuvam PDF u Google Drive...";
         const data = await saveLastTransactionToDrive();
+
         if(data && data.success){
             status.innerText = "PDF je sačuvan. Otvaram štampu...";
-            openPrintWindow(html);
+            openPrintWindow(html, printWindow);
         }else{
             status.innerText = data.message || "Greška pri čuvanju PDF-a.";
+            printWindow.close();
         }
     }
 }
