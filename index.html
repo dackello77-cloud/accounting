@@ -455,6 +455,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbx4UAAB4Pdj-yAT0jycublU
 
 let entitiesData = [];
 let lastTransactionData = null;
+let logoDataUrl = "";
 
 function getCheckedValue(name){
     const el = document.querySelector(`input[name="${name}"]:checked`);
@@ -472,12 +473,12 @@ async function login(){
     try{
         const res = await fetch(API_URL + "?action=login&username=" + encodeURIComponent(username) + "&password=" + encodeURIComponent(password));
         const data = await res.json();
-        if(data.success){document.getElementById("loginPage").style.display = "none";document.getElementById("dashboard").style.display = "block";loadDashboard();}
+        if(data.success){localStorage.setItem("loggedIn","true");document.getElementById("loginPage").style.display = "none";document.getElementById("dashboard").style.display = "block";loadDashboard();}
         else{alert(data.message || "Pogrešan username ili password");}
     }catch(error){alert("Greška pri povezivanju sa Google Sheet API");console.log(error);}
 }
 
-function logout(){document.getElementById("dashboard").style.display = "none";document.getElementById("loginPage").style.display = "flex";}
+function logout(){localStorage.removeItem("loggedIn");document.getElementById("dashboard").style.display = "none";document.getElementById("loginPage").style.display = "flex";}
 
 async function loadDashboard(){
     try{
@@ -563,13 +564,14 @@ async function saveTransaction(){
     catch(error){alert("Greška pri upisu u Google Sheet");console.log(error);return;}
     if(!data.success){alert(data.message || "Greška");return;}
     lastTransactionData = {datum:new Date(),tip,ime,adresa,ziro,iznos,brojFakture,notes};
+    closeTransactionModal();
+    loadDashboard();
+
     const printNow = confirm("Transakcija je sačuvana. Da li želite da odštampate dokument?");
     if(printNow){printLastTransaction();}
 
     const saveNow = confirm("Da li želite da sačuvate PDF dokument u Google Drive?");
     if(saveNow){await saveLastTransactionToDrive();}
-
-    closeTransactionModal();loadDashboard();
 }
 
 function openReviewModal(){setCurrentMonth();document.getElementById("reviewModal").style.display = "flex";loadReview();}
@@ -640,18 +642,37 @@ function getLogoUrl(){
     }
 }
 
+async function preloadLogo(){
+    try{
+        const res = await fetch(getLogoUrl(), {cache:"no-store"});
+        const blob = await res.blob();
+        logoDataUrl = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+        });
+    }catch(e){
+        logoDataUrl = "";
+    }
+}
+
+function getDocumentLogo(){
+    return logoDataUrl || getLogoUrl();
+}
+
 function buildCardDocumentHtml(){
     const table = document.getElementById("cardModal").querySelector("table").outerHTML.replace(/\+/g, "");
     const tip = getCheckedValue("cardTip") || "Sve";
     const ime = document.getElementById("cardName").value || "Sve";
     const from = document.getElementById("cardFrom").value;
     const to = document.getElementById("cardTo").value;
-    const logoUrl = getLogoUrl();
+    const logoUrl = getDocumentLogo();
 
     return `<html><head><title>Kartica</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111}.header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:15px;margin-bottom:25px}.logo{width:130px}h1{margin:0;font-size:26px}.info{margin-bottom:20px;font-size:14px}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #999;padding:8px;text-align:left;font-size:13px}th{background:#f1f5f9}.footer{margin-top:40px;font-size:12px;color:#555;text-align:center}</style></head><body><div class="header"><div><h1>Kartica</h1><div>M&M Safety Accounting</div></div><img src="${logoUrl}" class="logo"></div><div class="info"><strong>Tip:</strong> ${escapeHtml(tip)}<br><strong>Naziv:</strong> ${escapeHtml(ime)}<br><strong>Period:</strong> ${escapeHtml(from)} - ${escapeHtml(to)}</div>${table}<div class="footer">Dokument generisan iz M&M Safety Accounting aplikacije</div></body></html>`;
 }
 
 function printCard(){
+    closeCardModal();
     const win = window.open("", "_blank");
     win.document.write(buildCardDocumentHtml());
     win.document.close();
@@ -659,6 +680,7 @@ function printCard(){
 }
 
 async function saveCardToDrive(){
+    closeCardModal();
     const ime = document.getElementById("cardName").value || "Kartica";
     const from = document.getElementById("cardFrom").value;
     const to = document.getElementById("cardTo").value;
@@ -677,7 +699,7 @@ async function saveCardToDrive(){
 function buildTransactionDocumentHtml(){
     if(!lastTransactionData){return "";}
     const t = lastTransactionData;
-    const logoUrl = getLogoUrl();
+    const logoUrl = getDocumentLogo();
 
     return `<html><head><title>Transakcija</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111}.header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #111;padding-bottom:15px;margin-bottom:30px}.logo{width:130px}table{width:100%;border-collapse:collapse;margin-top:20px}td{border:1px solid #999;padding:12px;font-size:14px}.label{width:220px;font-weight:bold;background:#f1f5f9}.amount{font-size:22px;font-weight:bold}</style></head><body><div class="header"><div><h1>Transakcija</h1><div>M&M Safety Accounting</div></div><img src="${logoUrl}" class="logo"></div><table><tr><td class="label">Datum</td><td>${formatDate(t.datum)}</td></tr><tr><td class="label">Tip</td><td>${escapeHtml(t.tip)}</td></tr><tr><td class="label">Naziv</td><td>${escapeHtml(t.ime)}</td></tr><tr><td class="label">Adresa</td><td>${escapeHtml(t.adresa)}</td></tr><tr><td class="label">Žiro račun</td><td>${escapeHtml(t.ziro)}</td></tr><tr><td class="label">Broj fakture</td><td>${escapeHtml(t.brojFakture || "")}</td></tr><tr><td class="label">Notes</td><td>${escapeHtml(t.notes || "")}</td></tr><tr><td class="label">Iznos</td><td class="amount">${formatSignedAmount(t.tip, t.iznos)} RSD</td></tr></table></body></html>`;
 }
@@ -737,6 +759,16 @@ function formatMoney(num){return Number(num || 0).toLocaleString("sr-RS", {minim
 function formatSignedAmount(tip, iznos){const value = Number(iznos || 0);if(tip === "Ulaz"){return formatMoney(value);}return "-" + formatMoney(Math.abs(value));}
 function formatDate(date){if(!date) return "";return new Date(date).toLocaleDateString("sr-RS");}
 function escapeHtml(value){return String(value || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");}
+
+window.addEventListener("load", async function(){
+    await preloadLogo();
+    if(localStorage.getItem("loggedIn") === "true"){
+        document.getElementById("loginPage").style.display = "none";
+        document.getElementById("dashboard").style.display = "block";
+        loadDashboard();
+    }
+});
+
 </script>
 
 </body>
