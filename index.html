@@ -1120,8 +1120,22 @@ async function handleTransactionDocumentAction(action){
     status.innerText = "";
 
     if(action === "print"){
-        status.innerText = "Otvaram dokument za štampu...";
-        printLastTransaction();
+        if(!lastTransactionData){
+            status.innerText = "Prvo sačuvajte transakciju.";
+            return;
+        }
+
+        const printWindow = window.open("", "_blank");
+        if(!printWindow){
+            alert("Browser je blokirao popup. Dozvolite popups za ovu stranicu.");
+            return;
+        }
+
+        const html = buildTransactionDocumentHtml();
+        openPrintWindow(html, printWindow);
+
+        closeTransactionModal();
+        loadDashboard();
         return;
     }
 
@@ -1151,6 +1165,8 @@ async function handleTransactionDocumentAction(action){
             // SAVE PDF & PRINT štampa samo dokument transakcije.
             // Račun se i dalje premešta i preimenuje prilikom SAVE transakcije.
             openPrintWindow(html, printWindow);
+            closeTransactionModal();
+            loadDashboard();
         }else{
             status.innerText = data.message || "Greška pri čuvanju PDF-a.";
             printWindow.close();
