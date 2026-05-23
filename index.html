@@ -709,12 +709,21 @@ async function saveTransaction(){
 
     if(selectedReceiptData){
         document.getElementById("transactionDocStatus").innerText = "Premeštam račun u folder transakcije...";
-        await moveSelectedReceiptToTransaction();
+        try{
+            await moveSelectedReceiptToTransaction();
+        }catch(moveError){
+            console.log(moveError);
+            document.getElementById("transactionReceiptInfo").innerText = "Račun nije premešten, ali je transakcija sačuvana.";
+        }
     }
 
     document.getElementById("transactionSaveBtn").style.display = "none";
     document.getElementById("transactionDocActions").style.display = "block";
-    document.getElementById("transactionDocStatus").innerText = "Transakcija je sačuvana. Izaberite akciju za dokument.";
+    document.getElementById("transactionDocStatus").innerText = "Transakcija je sačuvana. Izaberite: SAVE PDF, PRINT ili SAVE PDF & PRINT.";
+
+    setTimeout(() => {
+        document.getElementById("transactionDocActions").scrollIntoView({behavior:"smooth", block:"center"});
+    }, 100);
 }
 
 function openReviewModal(){setCurrentMonth();document.getElementById("reviewModal").style.display = "flex";loadReview();}
@@ -814,11 +823,28 @@ function buildCardDocumentHtml(){
     return `<html><head><title>Kartica</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111}.header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:15px;margin-bottom:25px}.logo{width:130px}h1{margin:0;font-size:26px}.info{margin-bottom:20px;font-size:14px}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #999;padding:8px;text-align:left;font-size:13px}th{background:#f1f5f9}.footer{margin-top:40px;font-size:12px;color:#555;text-align:center}</style></head><body><div class="header"><div><h1>Kartica</h1><div>M&M Safety Accounting</div></div><img src="${logoUrl}" class="logo"></div><div class="info"><strong>Tip:</strong> ${escapeHtml(tip)}<br><strong>Naziv:</strong> ${escapeHtml(ime)}<br><strong>Period:</strong> ${escapeHtml(from)} - ${escapeHtml(to)}</div>${table}<div class="footer">Dokument generisan iz M&M Safety Accounting aplikacije</div></body></html>`;
 }
 
-function printCard(){
+function openPrintWindow(html){
     const win = window.open("", "_blank");
-    win.document.write(buildCardDocumentHtml());
+
+    if(!win){
+        alert("Browser je blokirao popup. Dozvolite popups za ovu stranicu.");
+        return null;
+    }
+
+    win.document.open();
+    win.document.write(html);
     win.document.close();
-    setTimeout(() => {win.print();}, 500);
+
+    setTimeout(() => {
+        win.focus();
+        win.print();
+    }, 700);
+
+    return win;
+}
+
+function printCard(){
+    openPrintWindow(buildCardDocumentHtml());
 }
 
 async function saveCardToDrive(){
@@ -850,18 +876,19 @@ async function handleCardDocumentAction(action){
     if(action === "save"){
         status.innerText = "Čuvam PDF u Google Drive...";
         const data = await saveCardToDrive();
-        status.innerText = data && data.success ? "PDF je sačuvan: " + data.fileName : "Greška pri čuvanju PDF-a.";
+        status.innerText = data && data.success ? "PDF je sačuvan: " + data.fileName : (data.message || "Greška pri čuvanju PDF-a.");
         return;
     }
 
     if(action === "both"){
+        const html = buildCardDocumentHtml();
         status.innerText = "Čuvam PDF u Google Drive...";
         const data = await saveCardToDrive();
         if(data && data.success){
             status.innerText = "PDF je sačuvan. Otvaram štampu...";
-            printCard();
+            openPrintWindow(html);
         }else{
-            status.innerText = "Greška pri čuvanju PDF-a.";
+            status.innerText = data.message || "Greška pri čuvanju PDF-a.";
         }
     }
 }
@@ -1047,10 +1074,8 @@ function printLastTransaction(){
         document.getElementById("transactionDocStatus").innerText = "Prvo sačuvajte transakciju.";
         return;
     }
-    const win = window.open("", "_blank");
-    win.document.write(buildTransactionDocumentHtml());
-    win.document.close();
-    setTimeout(() => {win.print();}, 500);
+
+    openPrintWindow(buildTransactionDocumentHtml());
 }
 
 async function saveLastTransactionToDrive(){
@@ -1086,11 +1111,12 @@ async function handleTransactionDocumentAction(action){
     }
 
     if(action === "both"){
+        const html = buildTransactionDocumentHtml();
         status.innerText = "Čuvam PDF u Google Drive...";
         const data = await saveLastTransactionToDrive();
         if(data && data.success){
             status.innerText = "PDF je sačuvan. Otvaram štampu...";
-            printLastTransaction();
+            openPrintWindow(html);
         }else{
             status.innerText = data.message || "Greška pri čuvanju PDF-a.";
         }
