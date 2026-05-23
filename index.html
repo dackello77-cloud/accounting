@@ -84,7 +84,7 @@ th{background:#0f172a;color:#94a3b8}
 }
 #cardFrom,#cardTo{font-size:14px;padding:12px}
 
-.action-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.action-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px}
 
 @media(max-width:1200px){
 #cardModal .cards{grid-template-columns:1fr 1fr!important}
@@ -418,6 +418,14 @@ th{background:#0f172a;color:#94a3b8}
                 PRINT / PDF
             </button>
 
+            <button
+                class="save-btn"
+                style="background:#0ea5e9;"
+                onclick="saveCardToDrive()"
+            >
+                SAVE PDF
+            </button>
+
         </div>
 
         <!-- TABELA -->
@@ -557,6 +565,10 @@ async function saveTransaction(){
     lastTransactionData = {datum:new Date(),tip,ime,adresa,ziro,iznos,brojFakture,notes};
     const printNow = confirm("Transakcija je sačuvana. Da li želite da odštampate dokument?");
     if(printNow){printLastTransaction();}
+
+    const saveNow = confirm("Da li želite da sačuvate PDF dokument u Google Drive?");
+    if(saveNow){await saveLastTransactionToDrive();}
+
     closeTransactionModal();loadDashboard();
 }
 
@@ -620,19 +632,104 @@ function renderCard(data, view){
     document.getElementById("cardHead").innerHTML = head;document.getElementById("cardTable").innerHTML = body;
 }
 
-function printCard(){
+function getLogoUrl(){
+    try{
+        return new URL("assets/logo.png", window.location.href).href;
+    }catch(e){
+        return "assets/logo.png";
+    }
+}
+
+function buildCardDocumentHtml(){
     const table = document.getElementById("cardModal").querySelector("table").outerHTML.replace(/\+/g, "");
-    const tip = getCheckedValue("cardTip") || "Sve";const ime = document.getElementById("cardName").value || "Sve";const from = document.getElementById("cardFrom").value;const to = document.getElementById("cardTo").value;
+    const tip = getCheckedValue("cardTip") || "Sve";
+    const ime = document.getElementById("cardName").value || "Sve";
+    const from = document.getElementById("cardFrom").value;
+    const to = document.getElementById("cardTo").value;
+    const logoUrl = getLogoUrl();
+
+    return `<html><head><title>Kartica</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111}.header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:15px;margin-bottom:25px}.logo{width:130px}h1{margin:0;font-size:26px}.info{margin-bottom:20px;font-size:14px}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #999;padding:8px;text-align:left;font-size:13px}th{background:#f1f5f9}.footer{margin-top:40px;font-size:12px;color:#555;text-align:center}</style></head><body><div class="header"><div><h1>Kartica</h1><div>M&M Safety Accounting</div></div><img src="${logoUrl}" class="logo"></div><div class="info"><strong>Tip:</strong> ${escapeHtml(tip)}<br><strong>Naziv:</strong> ${escapeHtml(ime)}<br><strong>Period:</strong> ${escapeHtml(from)} - ${escapeHtml(to)}</div>${table}<div class="footer">Dokument generisan iz M&M Safety Accounting aplikacije</div></body></html>`;
+}
+
+function printCard(){
     const win = window.open("", "_blank");
-    win.document.write(`<html><head><title>Kartica</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111}.header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:15px;margin-bottom:25px}.logo{width:130px}h1{margin:0;font-size:26px}.info{margin-bottom:20px;font-size:14px}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #999;padding:8px;text-align:left;font-size:13px}th{background:#f1f5f9}.footer{margin-top:40px;font-size:12px;color:#555;text-align:center}</style></head><body><div class="header"><div><h1>Kartica</h1><div>M&M Safety Accounting</div></div><img src="assets/logo.png" class="logo"></div><div class="info"><strong>Tip:</strong> ${tip}<br><strong>Naziv:</strong> ${ime}<br><strong>Period:</strong> ${from} - ${to}</div>${table}<div class="footer">Dokument generisan iz M&M Safety Accounting aplikacije</div></body></html>`);
-    win.document.close();setTimeout(() => {win.print();}, 500);
+    win.document.write(buildCardDocumentHtml());
+    win.document.close();
+    setTimeout(() => {win.print();}, 500);
+}
+
+async function saveCardToDrive(){
+    const ime = document.getElementById("cardName").value || "Kartica";
+    const from = document.getElementById("cardFrom").value;
+    const to = document.getElementById("cardTo").value;
+    const datum = new Date().toISOString().slice(0,10);
+    const brojFakture = (from && to) ? (from + "_" + to) : "KARTICA";
+
+    await saveDocumentToDrive({
+        docType:"card",
+        html:buildCardDocumentHtml(),
+        datum,
+        ime,
+        brojFakture
+    });
+}
+
+function buildTransactionDocumentHtml(){
+    if(!lastTransactionData){return "";}
+    const t = lastTransactionData;
+    const logoUrl = getLogoUrl();
+
+    return `<html><head><title>Transakcija</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111}.header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #111;padding-bottom:15px;margin-bottom:30px}.logo{width:130px}table{width:100%;border-collapse:collapse;margin-top:20px}td{border:1px solid #999;padding:12px;font-size:14px}.label{width:220px;font-weight:bold;background:#f1f5f9}.amount{font-size:22px;font-weight:bold}</style></head><body><div class="header"><div><h1>Transakcija</h1><div>M&M Safety Accounting</div></div><img src="${logoUrl}" class="logo"></div><table><tr><td class="label">Datum</td><td>${formatDate(t.datum)}</td></tr><tr><td class="label">Tip</td><td>${escapeHtml(t.tip)}</td></tr><tr><td class="label">Naziv</td><td>${escapeHtml(t.ime)}</td></tr><tr><td class="label">Adresa</td><td>${escapeHtml(t.adresa)}</td></tr><tr><td class="label">Žiro račun</td><td>${escapeHtml(t.ziro)}</td></tr><tr><td class="label">Broj fakture</td><td>${escapeHtml(t.brojFakture || "")}</td></tr><tr><td class="label">Notes</td><td>${escapeHtml(t.notes || "")}</td></tr><tr><td class="label">Iznos</td><td class="amount">${formatSignedAmount(t.tip, t.iznos)} RSD</td></tr></table></body></html>`;
 }
 
 function printLastTransaction(){
     if(!lastTransactionData){alert("Prvo sačuvajte transakciju");return;}
-    const t = lastTransactionData;const win = window.open("", "_blank");
-    win.document.write(`<html><head><title>Transakcija</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111}.header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #111;padding-bottom:15px;margin-bottom:30px}.logo{width:130px}table{width:100%;border-collapse:collapse;margin-top:20px}td{border:1px solid #999;padding:12px;font-size:14px}.label{width:220px;font-weight:bold;background:#f1f5f9}.amount{font-size:22px;font-weight:bold}</style></head><body><div class="header"><div><h1>Transakcija</h1><div>M&M Safety Accounting</div></div><img src="assets/logo.png" class="logo"></div><table><tr><td class="label">Datum</td><td>${formatDate(t.datum)}</td></tr><tr><td class="label">Tip</td><td>${t.tip}</td></tr><tr><td class="label">Naziv</td><td>${t.ime}</td></tr><tr><td class="label">Adresa</td><td>${t.adresa}</td></tr><tr><td class="label">Žiro račun</td><td>${t.ziro}</td></tr><tr><td class="label">Broj fakture</td><td>${t.brojFakture || ""}</td></tr><tr><td class="label">Notes</td><td>${t.notes || ""}</td></tr><tr><td class="label">Iznos</td><td class="amount">${formatSignedAmount(t.tip, t.iznos)} RSD</td></tr></table></body></html>`);
-    win.document.close();setTimeout(() => {win.print();}, 500);
+    const win = window.open("", "_blank");
+    win.document.write(buildTransactionDocumentHtml());
+    win.document.close();
+    setTimeout(() => {win.print();}, 500);
+}
+
+async function saveLastTransactionToDrive(){
+    if(!lastTransactionData){alert("Prvo sačuvajte transakciju");return;}
+    const t = lastTransactionData;
+
+    await saveDocumentToDrive({
+        docType:"transaction",
+        html:buildTransactionDocumentHtml(),
+        datum:new Date(t.datum).toISOString().slice(0,10),
+        ime:t.ime,
+        brojFakture:t.brojFakture || "BEZ-FAKTURE"
+    });
+}
+
+async function saveDocumentToDrive(payload){
+    try{
+        const body = new URLSearchParams();
+        body.append("action", "saveDocument");
+        body.append("docType", payload.docType);
+        body.append("html", payload.html);
+        body.append("datum", payload.datum || "");
+        body.append("ime", payload.ime || "");
+        body.append("brojFakture", payload.brojFakture || "");
+
+        const res = await fetch(API_URL, {
+            method:"POST",
+            body:body
+        });
+
+        const data = await res.json();
+
+        if(data.success){
+            alert("PDF je sačuvan u Google Drive.\n" + data.fileName);
+            if(data.url){window.open(data.url, "_blank");}
+        }else{
+            alert(data.message || "Greška pri čuvanju PDF-a");
+        }
+    }catch(error){
+        alert("Greška pri čuvanju PDF-a u Google Drive");
+        console.log(error);
+    }
 }
 
 function toInputDate(date){const y = date.getFullYear();const m = String(date.getMonth() + 1).padStart(2, "0");const d = String(date.getDate()).padStart(2, "0");return `${y}-${m}-${d}`;}
