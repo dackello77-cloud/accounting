@@ -935,7 +935,7 @@ async function selectTransactionReceipt(){
         return;
     }
 
-    preview.innerHTML = `<iframe src="${selectedReceiptData.previewUrl}"></iframe>`;
+    preview.innerHTML = "Učitavam originalni račun...";
     info.innerHTML = `Učitavam račun za preview i štampu...`;
 
     try{
@@ -945,9 +945,10 @@ async function selectTransactionReceipt(){
         if(data.success){
             selectedReceiptData.dataUrl = data.dataUrl;
             selectedReceiptData.mimeType = data.mimeType || selectedReceiptData.mimeType;
+            selectedReceiptData.directViewUrl = data.directViewUrl || selectedReceiptData.directViewUrl || ("https://drive.google.com/uc?export=view&id=" + selectedReceiptData.id);
 
             if(String(selectedReceiptData.mimeType).indexOf("image/") === 0){
-                preview.innerHTML = `<img src="${selectedReceiptData.dataUrl}" alt="Račun">`;
+                preview.innerHTML = `<img src="${selectedReceiptData.directViewUrl || selectedReceiptData.dataUrl}" onerror="this.onerror=null;this.src='${selectedReceiptData.dataUrl}'" alt="Račun">`;
             }else{
                 preview.innerHTML = `<iframe src="${selectedReceiptData.dataUrl}"></iframe>`;
             }
@@ -982,6 +983,7 @@ async function moveSelectedReceiptToTransaction(){
                 mimeType: selectedReceiptData.mimeType,
                 url: data.url,
                 previewUrl: data.previewUrl || selectedReceiptData.previewUrl,
+                directViewUrl: data.directViewUrl || selectedReceiptData.directViewUrl || ("https://drive.google.com/uc?export=view&id=" + selectedReceiptData.id),
                 dataUrl: selectedReceiptData.dataUrl || ""
             };
 
