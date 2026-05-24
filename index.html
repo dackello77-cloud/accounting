@@ -110,6 +110,59 @@ th{background:#0f172a;color:#94a3b8}
 .receipt-link:hover{text-decoration:underline}
 
 
+.documents-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    margin-top:15px;
+}
+
+.document-folder-btn{
+    border:none;
+    border-radius:14px;
+    padding:18px;
+    background:#0f172a;
+    color:white;
+    border:1px solid #334155;
+    text-align:left;
+    cursor:pointer;
+    transition:0.2s;
+}
+
+.document-folder-btn:hover{
+    background:#172554;
+    border-color:#2563eb;
+    transform:translateY(-1px);
+}
+
+.document-folder-btn strong{
+    display:block;
+    font-size:16px;
+    margin-bottom:6px;
+}
+
+.document-folder-btn span{
+    display:block;
+    color:#94a3b8;
+    font-size:13px;
+}
+
+body.light-theme .document-folder-btn{
+    background:rgba(255,255,255,.85);
+    color:#0f172a;
+    border-color:#d7e8f5;
+}
+
+body.light-theme .document-folder-btn:hover{
+    background:#dff4ff;
+    border-color:#38bdf8;
+}
+
+body.light-theme .document-folder-btn span{
+    color:#475569;
+}
+
+
 @media(max-width:1200px){
 #cardModal .cards{grid-template-columns:1fr 1fr!important}
 }
@@ -118,6 +171,7 @@ th{background:#0f172a;color:#94a3b8}
 .transaction-layout{grid-template-columns:1fr}
 .receipt-preview-box{height:300px}
 .document-action-grid{grid-template-columns:1fr}
+.documents-grid{grid-template-columns:1fr}
 .sidebar{position:relative;width:100%;min-height:auto}
 .main{margin-left:0}
 .cards{grid-template-columns:1fr}
@@ -196,6 +250,7 @@ body.light-theme .receipt-item.active{background:#dff4ff}
             <button onclick="openCardModal()">Kartica</button>
             <button onclick="openReviewModal()">Pregled</button>
             <button onclick="openReceiptModal()">Sačuvaj račun</button>
+            <button onclick="openDocumentsModal()">Dokumenti</button>
             <button onclick="logout()">Logout</button>
         </div>
     </div>
@@ -583,6 +638,80 @@ body.light-theme .receipt-item.active{background:#dff4ff}
         <div id="receiptMessage" style="margin-top:15px;color:#22c55e;font-weight:bold;"></div>
     </div>
 </div>
+
+
+<!-- DOCUMENTS MODAL -->
+<div class="modal" id="documentsModal">
+    <div class="modal-box" style="width:850px;max-width:95%;">
+        <div class="modal-header">
+            <h2>Dokumenti</h2>
+            <button class="close-btn" onclick="closeDocumentsModal()">X</button>
+        </div>
+
+        <p style="color:#94a3b8;margin-bottom:12px;">
+            Klikom na dugme otvara se odgovarajući Google Drive folder.
+        </p>
+
+        <div class="documents-grid">
+
+            <!-- TRANSAKCIJE FOLDER LINK -->
+            <button
+                class="document-folder-btn"
+                onclick="openDriveFolder('https://drive.google.com/drive/folders/1vvcAJIUAYc5DsuSHnmNAcD4tJf2uej6g?usp=sharing')"
+            >
+                <strong>Transakcije</strong>
+                <span>PDF dokumenti transakcija</span>
+            </button>
+
+            <!-- KARTICE FOLDER LINK -->
+            <button
+                class="document-folder-btn"
+                onclick="openDriveFolder('https://drive.google.com/drive/folders/1wB6-Chc8W8T_B5LR8GZCXj_QKGkyfNWS?usp=sharing')"
+            >
+                <strong>Kartice</strong>
+                <span>PDF kartice i pregledi</span>
+            </button>
+
+            <!-- RACUNI FOLDER LINK -->
+            <button
+                class="document-folder-btn"
+                onclick="openDriveFolder('https://drive.google.com/drive/folders/1cfKqzIraphOF7JNf0J7YE8dpHfTfFciD?usp=sharing')"
+            >
+                <strong>Računi</strong>
+                <span>Sačuvani i povezani računi</span>
+            </button>
+
+            <!-- IZVODI DINARSKI FOLDER LINK -->
+            <button
+                class="document-folder-btn"
+                onclick="openDriveFolder('https://drive.google.com/drive/folders/12irpIhqoYyZ-kbq6mXLzCW6hhcXCNKF5?usp=sharing')"
+            >
+                <strong>Izvodi - Dinarski</strong>
+                <span>Dinarski bankovni izvodi</span>
+            </button>
+
+            <!-- IZVODI DEVIZNI FOLDER LINK -->
+            <button
+                class="document-folder-btn"
+                onclick="openDriveFolder('https://drive.google.com/drive/folders/1q18HfSwyGWZn_pfonvQHdaYQUQUmRSgQ?usp=sharing')"
+            >
+                <strong>Izvodi - Devizni</strong>
+                <span>Devizni bankovni izvodi</span>
+            </button>
+
+            <!-- FAKTURE FOLDER LINK -->
+            <button
+                class="document-folder-btn"
+                onclick="openDriveFolder('https://drive.google.com/drive/folders/1CeUQO1vYkxREPpa4jt2-p5PT0N0IsCvR?usp=sharing')"
+            >
+                <strong>Fakture</strong>
+                <span>Izdate i sačuvane fakture</span>
+            </button>
+
+        </div>
+    </div>
+</div>
+
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbx4UAAB4Pdj-yAT0jycublUFGYLmsjLJN5El4MT0jrxXdu8ZEZNQztnwtoK-0CnE4DgDw/exec";
@@ -1464,6 +1593,22 @@ async function saveDocumentToDrive(payload){
         console.log(error);
         return {success:false, message:"Greška pri čuvanju PDF-a u Google Drive"};
     }
+}
+
+
+
+/* DOCUMENTS */
+
+function openDocumentsModal(){
+    document.getElementById("documentsModal").style.display = "flex";
+}
+
+function closeDocumentsModal(){
+    document.getElementById("documentsModal").style.display = "none";
+}
+
+function openDriveFolder(url){
+    window.open(url, "_blank");
 }
 
 
