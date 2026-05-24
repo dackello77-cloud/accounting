@@ -1437,7 +1437,13 @@ async function saveReceipt(){
 
 function toInputDate(date){const y = date.getFullYear();const m = String(date.getMonth() + 1).padStart(2, "0");const d = String(date.getDate()).padStart(2, "0");return `${y}-${m}-${d}`;}
 function formatMoney(num){return Number(num || 0).toLocaleString("sr-RS", {minimumFractionDigits: 2,maximumFractionDigits: 2});}
-function formatSignedAmount(tip, iznos){const value = Number(iznos || 0);if(tip === "Ulaz"){return formatMoney(value);}return "-" + formatMoney(Math.abs(value));}
+function formatSignedAmount(tip, iznos){
+
+    const value = Number(iznos || 0);
+
+    return formatMoney(Math.abs(value));
+
+}
 function formatDate(date){
     if(!date) return "";
 
