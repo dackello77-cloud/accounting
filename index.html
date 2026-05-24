@@ -24,7 +24,7 @@ button{cursor:pointer}
 .menu button{width:100%;margin-bottom:12px;padding:14px;border:none;border-radius:10px;background:#1e293b;color:white;text-align:left}
 .menu button:hover{background:#2563eb}
 .main{margin-left:250px;padding:25px}
-.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:0px;margin:1px 0}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin:25px 0}
 .card{background:#1e293b;padding:25px;border-radius:16px;border:1px solid #334155}
 .card-title{color:#94a3b8;margin-bottom:12px}
 .card-value{font-size:30px;font-weight:bold}
@@ -1438,7 +1438,31 @@ async function saveReceipt(){
 function toInputDate(date){const y = date.getFullYear();const m = String(date.getMonth() + 1).padStart(2, "0");const d = String(date.getDate()).padStart(2, "0");return `${y}-${m}-${d}`;}
 function formatMoney(num){return Number(num || 0).toLocaleString("sr-RS", {minimumFractionDigits: 2,maximumFractionDigits: 2});}
 function formatSignedAmount(tip, iznos){const value = Number(iznos || 0);if(tip === "Ulaz"){return formatMoney(value);}return "-" + formatMoney(Math.abs(value));}
-function formatDate(date){if(!date) return "";return new Date(date).toLocaleDateString("sr-RS");}
+function formatDate(date){
+    if(!date) return "";
+
+    if(typeof date === "string"){
+        const clean = date.trim();
+
+        const serbianDate = clean.match(/^(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})\.?$/);
+        if(serbianDate){
+            return `${Number(serbianDate[1])}. ${Number(serbianDate[2])}. ${serbianDate[3]}.`;
+        }
+
+        const isoDateOnly = clean.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if(isoDateOnly){
+            return `${Number(isoDateOnly[3])}. ${Number(isoDateOnly[2])}. ${isoDateOnly[1]}.`;
+        }
+    }
+
+    const d = new Date(date);
+
+    if(isNaN(d.getTime())){
+        return String(date);
+    }
+
+    return d.toLocaleDateString("sr-RS");
+}
 function escapeHtml(value){return String(value || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");}
 
 function applyTheme(theme){
