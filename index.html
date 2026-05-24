@@ -805,17 +805,124 @@ async function loadCard(){
 }
 
 function renderCard(data, view){
-    let head = "";let body = "";
+
+    let head = "";
+    let body = "";
+    let total = 0;
+
     if(view === "single"){
-        head = `<tr><th>Datum</th><th>Tip</th><th>Naziv</th><th>Faktura</th><th>Iznos</th><th>Notes</th></tr>`;
-        if(!data.data || data.data.length === 0){body = `<tr><td colspan="6">Nema podataka</td></tr>`;}
-        else{data.data.forEach(t => {const isUlaz = t.tip === "Ulaz";const color = isUlaz ? "green" : "red";body += `<tr><td>${formatDate(t.datum)}</td><td>${t.tip || ""}</td><td>${t.ime || ""}</td><td>${t.brojFakture || ""}</td><td class="${color}">${formatSignedAmount(t.tip, t.iznos)}</td><td>${t.notes || ""}</td></tr>`;});}
+
+        head = `
+            <tr>
+                <th>Datum</th>
+                <th>Tip</th>
+                <th>Naziv</th>
+                <th>Faktura</th>
+                <th>Iznos</th>
+                <th>Notes</th>
+            </tr>
+        `;
+
+        if(!data.data || data.data.length === 0){
+
+            body = `
+                <tr>
+                    <td colspan="6">Nema podataka</td>
+                </tr>
+            `;
+
+        }else{
+
+            data.data.forEach(t => {
+
+                const isUlaz = t.tip === "Ulaz";
+                const color = isUlaz ? "green" : "red";
+
+                total += Number(t.iznos || 0);
+
+                body += `
+                    <tr>
+                        <td>${formatDate(t.datum)}</td>
+                        <td>${t.tip || ""}</td>
+                        <td>${t.ime || ""}</td>
+                        <td>${t.brojFakture || ""}</td>
+                        <td class="${color}">
+                            ${formatSignedAmount(t.tip, t.iznos)}
+                        </td>
+                        <td>${t.notes || ""}</td>
+                    </tr>
+                `;
+            });
+
+            body += `
+                <tr>
+                    <td colspan="4">
+                        <strong>UKUPNO</strong>
+                    </td>
+
+                    <td>
+                        <strong>
+                            ${formatMoney(total)} RSD
+                        </strong>
+                    </td>
+
+                    <td></td>
+                </tr>
+            `;
+        }
+
     }else{
-        head = `<tr><th>Period</th><th>Ukupan iznos</th></tr>`;
-        if(!data.data || data.data.length === 0){body = `<tr><td colspan="2">Nema podataka</td></tr>`;}
-        else{data.data.forEach(t => {body += `<tr><td>${t.period}</td><td>${formatMoney(t.iznos)} RSD</td></tr>`;});}
+
+        head = `
+            <tr>
+                <th>Period</th>
+                <th>Ukupan iznos</th>
+            </tr>
+        `;
+
+        if(!data.data || data.data.length === 0){
+
+            body = `
+                <tr>
+                    <td colspan="2">Nema podataka</td>
+                </tr>
+            `;
+
+        }else{
+
+            data.data.forEach(t => {
+
+                total += Number(t.iznos || 0);
+
+                body += `
+                    <tr>
+                        <td>${t.period}</td>
+
+                        <td>
+                            ${formatMoney(t.iznos)} RSD
+                        </td>
+                    </tr>
+                `;
+            });
+
+            body += `
+                <tr>
+                    <td>
+                        <strong>UKUPNO</strong>
+                    </td>
+
+                    <td>
+                        <strong>
+                            ${formatMoney(total)} RSD
+                        </strong>
+                    </td>
+                </tr>
+            `;
+        }
     }
-    document.getElementById("cardHead").innerHTML = head;document.getElementById("cardTable").innerHTML = body;
+
+    document.getElementById("cardHead").innerHTML = head;
+    document.getElementById("cardTable").innerHTML = body;
 }
 
 function getLogoUrl(){
