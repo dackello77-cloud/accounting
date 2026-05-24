@@ -1282,7 +1282,33 @@ async function saveReceipt(){
 function toInputDate(date){const y = date.getFullYear();const m = String(date.getMonth() + 1).padStart(2, "0");const d = String(date.getDate()).padStart(2, "0");return `${y}-${m}-${d}`;}
 function formatMoney(num){return Number(num || 0).toLocaleString("sr-RS", {minimumFractionDigits: 2,maximumFractionDigits: 2});}
 function formatSignedAmount(tip, iznos){const value = Number(iznos || 0);if(tip === "Ulaz"){return formatMoney(value);}return "-" + formatMoney(Math.abs(value));}
-function formatDate(date){if(!date) return "";return new Date(date).toLocaleDateString("sr-RS");}
+function formatDate(date){
+
+    if(!date) return "";
+
+    if(typeof date === "string"){
+
+        const clean = date.trim();
+
+        const match = clean.match(/^(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})\.?$/);
+
+        if(match){
+            const day = match[1].padStart(2, "0");
+            const month = match[2].padStart(2, "0");
+            const year = match[3];
+
+            return `${day}. ${month}. ${year}.`;
+        }
+    }
+
+    const d = new Date(date);
+
+    if(isNaN(d.getTime())){
+        return "Invalid Date";
+    }
+
+    return d.toLocaleDateString("sr-RS");
+}
 function escapeHtml(value){return String(value || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");}
 
 window.addEventListener("load", async function(){
