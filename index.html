@@ -2925,25 +2925,25 @@ function buildObracunKPdfHtml(){
 <meta charset="UTF-8">
 <title>OBRAČUN - K - ${escapeHtml(state.month)} ${escapeHtml(state.year)}</title>
 <style>
-@page{size:A4 portrait;margin:8mm;}
+@page{size:A4 portrait;margin:6mm;}
 *{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
-body{font-family:Arial,sans-serif;margin:0;color:#111;background:#fff;font-size:12px;}
-.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:4px solid #111827;padding-bottom:10px;}
-.logo{width:145px;}
+body{font-family:Arial,sans-serif;margin:0;color:#111;background:#fff;font-size:11px;}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;border-bottom:3px solid #111827;padding-bottom:7px;}
+.logo{width:130px;}
 .title{text-align:right;}
-.title h1{font-size:22px;margin:0 0 6px 0;font-weight:900;letter-spacing:.3px;}
-.title div{background:#111827;color:#fff;padding:6px 16px;font-weight:800;display:inline-block;}
-table{width:100%;border-collapse:collapse;margin-top:8px;}
-th{background:#dc2626;color:#fff;padding:7px;border:1px solid #111;text-transform:uppercase;font-size:12px;}
-td{border:1px solid #111;padding:6px 7px;font-size:12px;}
+.title h1{font-size:20px;margin:0 0 4px 0;font-weight:900;letter-spacing:.25px;}
+.title div{background:#111827;color:#fff;padding:5px 14px;font-weight:800;display:inline-block;}
+table{width:100%;border-collapse:collapse;margin-top:6px;}
+th{background:#dc2626;color:#fff;padding:5px 6px;border:1px solid #111;text-transform:uppercase;font-size:11px;line-height:1.1;}
+td{border:1px solid #111;padding:3px 5px;font-size:11px;line-height:1.12;}
 tbody tr:nth-child(even) td{background:#f3f4f6;}
-.rb{width:42px;text-align:center;}
+.rb{width:36px;text-align:center;}
 .name{font-weight:700;}
-.check{width:85px;text-align:center;font-size:18px;color:#dc2626;font-weight:900;}
+.check{width:70px;text-align:center;font-size:14px;color:#dc2626;font-weight:900;line-height:1;}
 .extra{text-align:center;}
-.notes{margin-top:14px;border:1px solid #111;}
-.notes-title{background:#1d4ed8;color:#fff;text-align:center;font-weight:900;padding:7px;text-transform:uppercase;}
-.notes-body{padding:12px;white-space:pre-wrap;line-height:1.45;font-size:12px;}
+.notes{margin-top:8px;border:1px solid #111;}
+.notes-title{background:#1d4ed8;color:#fff;text-align:center;font-weight:900;padding:5px;text-transform:uppercase;font-size:11px;}
+.notes-body{padding:7px 8px;white-space:pre-wrap;line-height:1.22;font-size:10.5px;}
 </style>
 </head>
 <body>
