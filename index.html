@@ -400,16 +400,17 @@ body.light-theme .obracun-k-table th{background:#eaf7ff;color:#475569}
         <div class="input-group">
             <label>Tip</label>
             <div class="radio-group">
-                <label class="radio-item"><input type="radio" name="addTip" value="Ulaz"> Ulaz</label>
-                <label class="radio-item"><input type="radio" name="addTip" value="Porezi"> Porezi</label>
-                <label class="radio-item"><input type="radio" name="addTip" value="Klijenti"> Klijenti</label>
-                <label class="radio-item"><input type="radio" name="addTip" value="Zaposleni"> Zaposleni</label>
+                <label class="radio-item"><input type="radio" name="addTip" value="Ulaz" onchange="handleAddTipChange()"> Ulaz</label>
+                <label class="radio-item"><input type="radio" name="addTip" value="Porezi" onchange="handleAddTipChange()"> Porezi</label>
+                <label class="radio-item"><input type="radio" name="addTip" value="Klijenti" onchange="handleAddTipChange()"> Klijenti</label>
+                <label class="radio-item"><input type="radio" name="addTip" value="Zaposleni" onchange="handleAddTipChange()"> Zaposleni</label>
+                <label class="radio-item"><input type="radio" name="addTip" value="Artikli" onchange="handleAddTipChange()"> Artikli</label>
             </div>
         </div>
 
-        <div class="input-group"><label>Naziv</label><input type="text" id="addIme"></div>
-        <div class="input-group"><label>Adresa</label><input type="text" id="addAdresa"></div>
-        <div class="input-group"><label>Žiro račun</label><input type="text" id="addZiro"></div>
+        <div class="input-group"><label id="addImeLabel">Naziv</label><input type="text" id="addIme"></div>
+        <div class="input-group"><label id="addAdresaLabel">Adresa</label><input type="text" id="addAdresa"></div>
+        <div class="input-group" id="addZiroGroup"><label>Žiro račun</label><input type="text" id="addZiro"></div>
         <button class="save-btn" onclick="saveEntity()">SAVE</button>
     </div>
 </div>
@@ -1145,7 +1146,32 @@ async function loadDashboard(){
 
 function openAddModal(){resetAddModal();document.getElementById("addModal").style.display = "flex";}
 function closeAddModal(){resetAddModal();document.getElementById("addModal").style.display = "none";}
-function resetAddModal(){resetRadioGroup("addTip");document.getElementById("addIme").value = "";document.getElementById("addAdresa").value = "";document.getElementById("addZiro").value = "";}
+function resetAddModal(){
+    resetRadioGroup("addTip");
+    document.getElementById("addIme").value = "";
+    document.getElementById("addAdresa").value = "";
+    document.getElementById("addZiro").value = "";
+    handleAddTipChange();
+}
+
+function handleAddTipChange(){
+    const tip = getCheckedValue("addTip");
+
+    const adresaLabel = document.getElementById("addAdresaLabel");
+    const ziroGroup = document.getElementById("addZiroGroup");
+    const addZiro = document.getElementById("addZiro");
+
+    if(tip === "Artikli"){
+        adresaLabel.innerText = "Cena";
+        ziroGroup.style.display = "none";
+        addZiro.value = "";
+        document.getElementById("addAdresa").placeholder = "Unesite cenu artikla";
+    }else{
+        adresaLabel.innerText = "Adresa";
+        ziroGroup.style.display = "block";
+        document.getElementById("addAdresa").placeholder = "";
+    }
+}
 
 async function saveEntity(){
     const tip = getCheckedValue("addTip");
