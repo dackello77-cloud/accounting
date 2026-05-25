@@ -3132,20 +3132,21 @@ function buildInvoiceHtml(){
     let total = 0;
     let rows = "";
 
-    items.forEach(item => {
+    items.forEach((item, index) => {
         total += item.value;
+        const rowBg = index % 2 === 0 ? "#ffffff" : "#eef2f7";
         rows += `
             <tr>
-                <td>${escapeHtml(item.service)}</td>
-                <td class="right">${formatMoney(item.qty)}</td>
-                <td class="right">${formatMoney(item.price)}</td>
-                <td class="right">${formatMoney(item.value)}</td>
+                <td style="background:${rowBg};">${escapeHtml(item.service)}</td>
+                <td class="right" style="background:${rowBg};">${formatMoney(item.qty)}</td>
+                <td class="right" style="background:${rowBg};">${formatMoney(item.price)}</td>
+                <td class="right" style="background:${rowBg};">${formatMoney(item.value)}</td>
             </tr>
         `;
     });
 
     if(!rows){
-        rows = `<tr><td>&nbsp;</td><td class="right">0,00</td><td class="right">0,00</td><td class="right">0,00</td></tr>`;
+        rows = `<tr><td style="background:#ffffff;">&nbsp;</td><td class="right" style="background:#ffffff;">0,00</td><td class="right" style="background:#ffffff;">0,00</td><td class="right" style="background:#ffffff;">0,00</td></tr>`;
     }
 
     return `
@@ -3160,6 +3161,8 @@ function buildInvoiceHtml(){
 
 *{
     box-sizing:border-box;
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important;
 }
 
 body{
@@ -3186,19 +3189,9 @@ body{
     margin-bottom:42px;
 }
 
-.logo-text{
-    font-size:21px;
-    font-weight:900;
-    letter-spacing:.2px;
-    color:#111111;
-    line-height:1;
-}
-
-.logo-sub{
-    font-size:6px;
-    color:#5f6b7a;
-    margin-top:3px;
-    letter-spacing:.2px;
+.logo-empty{
+    width:160px;
+    min-height:28px;
 }
 
 .company-info{
@@ -3220,8 +3213,8 @@ body{
 }
 
 .client-box{
-    background:#f1f3f6;
-    border:1px solid #cfd5df;
+    background:#eef2f7!important;
+    border:1px solid #374151;
     padding:22px 16px;
     min-height:95px;
     line-height:1.35;
@@ -3248,12 +3241,13 @@ table{
     width:100%;
     border-collapse:collapse;
     margin-top:0;
+    border:1px solid #111827;
 }
 
 th{
-    background:#e8ebf0;
-    color:#111111;
-    border:1px solid #c5ccd6;
+    background:#073b44!important;
+    color:#ffffff!important;
+    border:1px solid #111827;
     padding:9px 8px;
     text-align:left;
     font-size:11px;
@@ -3261,7 +3255,7 @@ th{
 }
 
 td{
-    border:1px solid #c5ccd6;
+    border:1px solid #374151;
     padding:9px 8px;
     font-size:11px;
     vertical-align:top;
@@ -3272,8 +3266,13 @@ td{
 }
 
 .total-row td{
-    background:#e8ebf0;
+    background:#073b44!important;
+    color:#ffffff!important;
     font-weight:900;
+}
+
+.total-row .en{
+    color:#dbe4e8!important;
 }
 
 .summary{
@@ -3291,8 +3290,8 @@ td{
 
 .footer{
     margin-top:28px;
-    background:#f1f3f6;
-    border:1px solid #cfd5df;
+    background:#eef2f7!important;
+    border:1px solid #374151;
     color:#111111;
     font-size:11px;
     line-height:1.35;
@@ -3311,10 +3310,7 @@ td{
 <div class="invoice-wrap">
 
     <div class="header">
-        <div>
-            <div class="logo-text">M&M SAFETY</div>
-            <div class="logo-sub">TRACKING, SAFETY AND MORE</div>
-        </div>
+        <div class="logo-empty"></div>
 
         <div class="company-info">
             <strong>M&M SAFETY DOO</strong><br>
