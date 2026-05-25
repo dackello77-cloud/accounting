@@ -2173,25 +2173,28 @@ function buildObracunRInnerHtml(){
 
 function buildObracunRDocumentHtml(){
     return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Obračun - R</title><style>
-        @page{size:A4 landscape;margin:3mm}
+        @page{size:A4 landscape;margin:4mm}
         *{box-sizing:border-box}
         html,body{margin:0;padding:0;background:white;color:#111;font-family:Arial,sans-serif}
-        body{width:291mm;min-height:204mm;overflow:hidden}
-        .obracun-pdf-page{width:291mm;min-height:204mm;padding:4mm 5mm 3mm 5mm;overflow:hidden}
-        .obracun-preview-head{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0f3f46;padding-bottom:5px;margin-bottom:7px}
-        .obracun-preview-head img{width:112px}
+        body{width:289mm;min-height:202mm;overflow:hidden}
+        .obracun-pdf-page{width:289mm;min-height:202mm;padding:5mm 6mm 4mm 6mm;overflow:hidden}
+        .obracun-preview-head{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #073b44;padding-bottom:7px;margin-bottom:9px}
+        .obracun-preview-head img{width:118px}
         .obracun-preview-title{text-align:right}
-        .obracun-preview-title h2{margin:0;font-size:18px;line-height:1.1}
-        .obracun-preview-title div{background:#0f3f46;color:white;padding:4px 12px;margin-top:4px;font-weight:bold;font-size:12px}
-        .obracun-preview-table{width:100%;border-collapse:collapse;margin-bottom:6px;font-size:8.5px;line-height:1.1;page-break-inside:avoid}
-        .obracun-preview-table th{background:#0f3f46;color:white;border:1px solid #1f2937;padding:3px 4px;text-align:left}
-        .obracun-preview-table td{border:1px solid #1f2937;padding:2px 4px;color:#111;vertical-align:middle}
-        .obracun-preview-table td:first-child{padding-left:4px;padding-right:4px}
-        .obracun-preview-total td{background:#0f3f46!important;color:white!important;font-weight:bold}
-        .obracun-preview-rate{background:#ef4444;color:white;font-weight:bold;padding:5px 8px;margin:6px 0;border-radius:3px;display:flex;justify-content:space-between;font-size:10px}
-        .obracun-pdf-page > div:nth-child(2){gap:8px!important}
+        .obracun-preview-title h2{margin:0;font-size:19px;line-height:1.1;color:#111827;letter-spacing:.2px}
+        .obracun-preview-title div{background:#073b44;color:white;padding:5px 14px;margin-top:5px;font-weight:bold;font-size:12px;border-radius:2px}
+        .obracun-preview-table{width:100%;border-collapse:collapse;margin-bottom:7px;font-size:8.7px;line-height:1.13;page-break-inside:avoid;border:1px solid #111827}
+        .obracun-preview-table th{background:#073b44!important;color:white!important;border:1px solid #111827;padding:4px 5px;text-align:left;font-weight:bold;text-transform:uppercase;letter-spacing:.15px}
+        .obracun-preview-table td{border:1px solid #374151;padding:3px 5px;color:#111;vertical-align:middle}
+        .obracun-preview-table tbody tr:nth-child(odd) td{background:#ffffff}
+        .obracun-preview-table tbody tr:nth-child(even) td{background:#eef2f7}
+        .obracun-preview-table td:first-child{padding-left:5px;padding-right:5px;font-weight:500}
+        .obracun-preview-total td{background:#073b44!important;color:white!important;font-weight:bold}
+        .obracun-preview-rate{background:#b91c1c;color:white;font-weight:bold;padding:7px 10px;margin:8px 0;border-radius:4px;display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:.2px;border:1px solid #7f1d1d}
+        .obracun-preview-rate span:first-child{text-transform:uppercase}
+        .obracun-pdf-page > div:nth-child(2){gap:10px!important}
         @media print{
-            html,body{width:291mm;min-height:204mm;overflow:hidden}
+            html,body{width:289mm;min-height:202mm;overflow:hidden}
             .obracun-pdf-page{page-break-after:avoid;page-break-inside:avoid}
         }
     </style></head><body><div class="obracun-pdf-page">${buildObracunRInnerHtml()}</div></body></html>`;
