@@ -2131,11 +2131,13 @@ function buildObracunRInnerHtml(){
     const total = tax + cost + salary;
 
     const sectionTable = (title, rows, withRb=true) => {
-        let html = `<table class="obracun-preview-table"><thead><tr><th>${title}</th><th>RSD</th><th>USD</th></tr></thead><tbody>`;
+        const headStyle = 'background:#073b44!important;color:#ffffff!important;font-weight:800;text-transform:uppercase;letter-spacing:.2px;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;';
+        let html = `<table class="obracun-preview-table"><thead><tr><th style="${headStyle}">${title}</th><th style="${headStyle}">RSD</th><th style="${headStyle}">USD</th></tr></thead><tbody>`;
         rows.forEach((r, i) => {
             const name = withRb ? `${i+1}. ${escapeHtml(r.name || "")}` : escapeHtml(r.name || "");
             const rsd = Number(r.rsd || 0);
-            html += `<tr><td>${name}</td><td>${formatMoney(rsd)}</td><td>$ ${formatUsd(rate ? rsd/rate : 0)}</td></tr>`;
+            const rowBg = i % 2 === 0 ? '#ffffff' : '#eef2f7';
+            html += `<tr><td style="background:${rowBg};">${name}</td><td style="background:${rowBg};">${formatMoney(rsd)}</td><td style="background:${rowBg};">$ ${formatUsd(rate ? rsd/rate : 0)}</td></tr>`;
         });
         html += `</tbody></table>`;
         return html;
@@ -2155,12 +2157,12 @@ function buildObracunRInnerHtml(){
                 ${sectionTable('MESEČNI TROŠKOVI', obracunData.cost, false)}
                 <div class="obracun-preview-rate"><span>KURS DOLARA</span><span>${rate ? formatMoney(rate) : '0,00'}</span></div>
                 <table class="obracun-preview-table">
-                    <thead><tr><th>UKUPNO</th><th>RSD</th><th>USD</th></tr></thead>
+                    <thead><tr><th style="background:#073b44!important;color:#ffffff!important;font-weight:800;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;">UKUPNO</th><th style="background:#073b44!important;color:#ffffff!important;font-weight:800;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;">RSD</th><th style="background:#073b44!important;color:#ffffff!important;font-weight:800;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;">USD</th></tr></thead>
                     <tbody>
-                        <tr><td>POREZI</td><td>${formatMoney(tax)}</td><td>$ ${formatUsd(rate ? tax/rate : 0)}</td></tr>
-                        <tr><td>MESEČNI TROŠKOVI</td><td>${formatMoney(cost)}</td><td>$ ${formatUsd(rate ? cost/rate : 0)}</td></tr>
-                        <tr><td>PLATE ZAPOSLENIH</td><td>${formatMoney(salary)}</td><td>$ ${formatUsd(rate ? salary/rate : 0)}</td></tr>
-                        <tr class="obracun-preview-total"><td>UKUPNO ZA UPLATU</td><td>${formatMoney(total)}</td><td>$ ${formatUsd(rate ? total/rate : 0)}</td></tr>
+                        <tr><td style="background:#ffffff;">POREZI</td><td style="background:#ffffff;">${formatMoney(tax)}</td><td style="background:#ffffff;">$ ${formatUsd(rate ? tax/rate : 0)}</td></tr>
+                        <tr><td style="background:#eef2f7;">MESEČNI TROŠKOVI</td><td style="background:#eef2f7;">${formatMoney(cost)}</td><td style="background:#eef2f7;">$ ${formatUsd(rate ? cost/rate : 0)}</td></tr>
+                        <tr><td style="background:#ffffff;">PLATE ZAPOSLENIH</td><td style="background:#ffffff;">${formatMoney(salary)}</td><td style="background:#ffffff;">$ ${formatUsd(rate ? salary/rate : 0)}</td></tr>
+                        <tr class="obracun-preview-total"><td style="background:#073b44!important;color:#ffffff!important;font-weight:900;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;">UKUPNO ZA UPLATU</td><td style="background:#073b44!important;color:#ffffff!important;font-weight:900;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;">${formatMoney(total)}</td><td style="background:#073b44!important;color:#ffffff!important;font-weight:900;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;">$ ${formatUsd(rate ? total/rate : 0)}</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -2174,7 +2176,7 @@ function buildObracunRInnerHtml(){
 function buildObracunRDocumentHtml(){
     return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Obračun - R</title><style>
         @page{size:A4 landscape;margin:4mm}
-        *{box-sizing:border-box}
+        *{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
         html,body{margin:0;padding:0;background:white;color:#111;font-family:Arial,sans-serif}
         body{width:289mm;min-height:202mm;overflow:hidden}
         .obracun-pdf-page{width:289mm;min-height:202mm;padding:5mm 6mm 4mm 6mm;overflow:hidden}
