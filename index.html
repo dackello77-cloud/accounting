@@ -2918,44 +2918,97 @@ function buildObracunKEmailHtml(pdfFileName){
     const state = getObracunKState();
     const notes = (state.notes || "").trim();
     const message = document.getElementById("obracunKEmailMessage")?.value.trim() || "";
+
     return `
         <div style="font-family:Arial,sans-serif;background:#eaf7ff;padding:22px;color:#0f172a;">
             <div style="max-width:760px;margin:auto;background:#ffffff;border-radius:22px;padding:24px;border:1px solid #d7e8f5;">
+
                 <div style="display:flex;align-items:center;gap:20px;margin-bottom:22px;">
-                    <img src="${logoUrl}" style="width:140px;">
+                    <div style="width:140px;"></div>
+
                     <div>
-                        <h2 style="margin:0;color:#334155;">Obračun Ruke ${escapeHtml(state.month)} ${escapeHtml(state.year)}</h2>
-                        <p style="margin:6px 0 0 0;color:#334155;">PDF je u prilogu.</p>
+                        <h2 style="margin:0;color:#334155;">
+                            Obračun K ${escapeHtml(state.month)} ${escapeHtml(state.year)}
+                        </h2>
+                        <p style="margin:6px 0 0 0;color:#334155;">
+                            PDF je u prilogu.
+                        </p>
                     </div>
                 </div>
-                ${notes ? `<div style="background:#111827;color:white;border-radius:14px;padding:18px;margin-bottom:14px;"><strong>Napomene</strong><div style="white-space:pre-wrap;line-height:1.55;margin-top:10px;">${escapeHtml(notes)}</div></div>` : ``}
-                ${message ? `<div style="background:#111827;color:white;border-radius:14px;padding:18px;margin-bottom:14px;"><strong>Message</strong><div style="white-space:pre-wrap;line-height:1.55;margin-top:10px;">${escapeHtml(message)}</div></div>` : ``}
-                <p style="color:#334155;">PDF je u prilogu: <strong>${escapeHtml(pdfFileName || '')}</strong></p>
-                <div style="text-align:center;margin-top:22px;color:#334155;">M&M Safety doo, Majakovskog 34, Niš, Srbija</div>
+
+                ${notes ? `
+                    <div style="background:#111827;color:white;border-radius:14px;padding:18px;margin-bottom:14px;">
+                        <strong>Napomene</strong>
+                        <div style="white-space:pre-wrap;line-height:1.55;margin-top:10px;">
+                            ${escapeHtml(notes)}
+                        </div>
+                    </div>
+                ` : ``}
+
+                ${message ? `
+                    <div style="background:#111827;color:white;border-radius:14px;padding:18px;margin-bottom:14px;">
+                        <strong>Message</strong>
+                        <div style="white-space:pre-wrap;line-height:1.55;margin-top:10px;">
+                            ${escapeHtml(message)}
+                        </div>
+                    </div>
+                ` : ``}
+
+                <p style="color:#334155;">
+                    PDF je u prilogu: <strong>${escapeHtml(pdfFileName || '')}</strong>
+                </p>
+
+                <div style="text-align:center;margin-top:22px;color:#334155;">
+                    M&M Safety doo, Majakovskog 34, Niš, Srbija
+                </div>
             </div>
         </div>
     `;
 }
 
-async function sendObracunKEmail(){
+async async function sendObracunKEmail(){
     const status = document.getElementById("obracunKStatus");
-    if(selectedObracunKEmails.length === 0){status.innerText = "Dodajte bar jedan email.";return;}
-    status.innerText = "Šaljem email...";
-    const state = getObracunKState();
-    const body = new URLSearchParams();
-    body.append("action", "sendObracunKEmail");
-    body.append("to", selectedObracunKEmails.map(e=>e.adresa).join(','));
-    body.append("html", buildObracunKPdfHtml());
-    body.append("month", state.month);
-    body.append("year", state.year);
-    body.append("data", JSON.stringify(state));
-    body.append("message", document.getElementById("obracunKEmailMessage").value || "");
-    body.append("emailHtml", buildObracunKEmailHtml("OBRAČUN - K - " + state.month + " " + state.year + ".pdf"));
+
     try{
-        const res = await fetch(API_URL,{method:"POST", body});
+        if(selectedObracunKEmails.length === 0){
+            status.innerText = "Dodajte bar jedan email.";
+            return;
+        }
+
+        status.innerText = "Šaljem email...";
+
+        const state = getObracunKState();
+
+        const body = new URLSearchParams();
+        body.append("action", "sendObracunKEmail");
+        body.append("to", selectedObracunKEmails.map(e => e.adresa).join(","));
+        body.append("html", buildObracunKPdfHtml());
+        body.append("month", state.month);
+        body.append("year", state.year);
+        body.append("data", JSON.stringify(state));
+        body.append("message", document.getElementById("obracunKEmailMessage").value || "");
+        body.append(
+            "emailHtml",
+            buildObracunKEmailHtml("OBRAČUN - K - " + state.month + " " + state.year + ".pdf")
+        );
+
+        const res = await fetch(API_URL, {
+            method: "POST",
+            body: body
+        });
+
         const data = await res.json();
-        status.innerText = data.success ? "Email je poslat." : (data.message || "Greška pri slanju emaila.");
-    }catch(e){status.innerText = "Greška pri slanju emaila.";console.log(e);}
+
+        if(data.success){
+            status.innerText = "Email je poslat.";
+        }else{
+            status.innerText = data.message || "Greška pri slanju emaila.";
+        }
+
+    }catch(e){
+        status.innerText = "Greška pri slanju emaila: " + e.message;
+        console.log(e);
+    }
 }
 
 
@@ -3132,21 +3185,20 @@ function buildInvoiceHtml(){
     let total = 0;
     let rows = "";
 
-    items.forEach((item, index) => {
+    items.forEach(item => {
         total += item.value;
-        const rowBg = index % 2 === 0 ? "#ffffff" : "#eef2f7";
         rows += `
             <tr>
-                <td style="background:${rowBg};">${escapeHtml(item.service)}</td>
-                <td class="right" style="background:${rowBg};">${formatMoney(item.qty)}</td>
-                <td class="right" style="background:${rowBg};">${formatMoney(item.price)}</td>
-                <td class="right" style="background:${rowBg};">${formatMoney(item.value)}</td>
+                <td>${escapeHtml(item.service)}</td>
+                <td class="right">${formatMoney(item.qty)}</td>
+                <td class="right">${formatMoney(item.price)}</td>
+                <td class="right">${formatMoney(item.value)}</td>
             </tr>
         `;
     });
 
     if(!rows){
-        rows = `<tr><td style="background:#ffffff;">&nbsp;</td><td class="right" style="background:#ffffff;">0,00</td><td class="right" style="background:#ffffff;">0,00</td><td class="right" style="background:#ffffff;">0,00</td></tr>`;
+        rows = `<tr><td>&nbsp;</td><td class="right">0,00</td><td class="right">0,00</td><td class="right">0,00</td></tr>`;
     }
 
     return `
@@ -3161,8 +3213,6 @@ function buildInvoiceHtml(){
 
 *{
     box-sizing:border-box;
-    -webkit-print-color-adjust:exact!important;
-    print-color-adjust:exact!important;
 }
 
 body{
@@ -3189,9 +3239,19 @@ body{
     margin-bottom:42px;
 }
 
-.logo-empty{
-    width:160px;
-    min-height:28px;
+.logo-text{
+    font-size:21px;
+    font-weight:900;
+    letter-spacing:.2px;
+    color:#111111;
+    line-height:1;
+}
+
+.logo-sub{
+    font-size:6px;
+    color:#5f6b7a;
+    margin-top:3px;
+    letter-spacing:.2px;
 }
 
 .company-info{
@@ -3213,8 +3273,8 @@ body{
 }
 
 .client-box{
-    background:#eef2f7!important;
-    border:1px solid #374151;
+    background:#f1f3f6;
+    border:1px solid #cfd5df;
     padding:22px 16px;
     min-height:95px;
     line-height:1.35;
@@ -3241,13 +3301,12 @@ table{
     width:100%;
     border-collapse:collapse;
     margin-top:0;
-    border:1px solid #111827;
 }
 
 th{
-    background:#073b44!important;
-    color:#ffffff!important;
-    border:1px solid #111827;
+    background:#e8ebf0;
+    color:#111111;
+    border:1px solid #c5ccd6;
     padding:9px 8px;
     text-align:left;
     font-size:11px;
@@ -3255,7 +3314,7 @@ th{
 }
 
 td{
-    border:1px solid #374151;
+    border:1px solid #c5ccd6;
     padding:9px 8px;
     font-size:11px;
     vertical-align:top;
@@ -3266,13 +3325,8 @@ td{
 }
 
 .total-row td{
-    background:#073b44!important;
-    color:#ffffff!important;
+    background:#e8ebf0;
     font-weight:900;
-}
-
-.total-row .en{
-    color:#dbe4e8!important;
 }
 
 .summary{
@@ -3290,8 +3344,8 @@ td{
 
 .footer{
     margin-top:28px;
-    background:#eef2f7!important;
-    border:1px solid #374151;
+    background:#f1f3f6;
+    border:1px solid #cfd5df;
     color:#111111;
     font-size:11px;
     line-height:1.35;
@@ -3310,7 +3364,10 @@ td{
 <div class="invoice-wrap">
 
     <div class="header">
-        <div class="logo-empty"></div>
+        <div>
+            <div class="logo-text">M&M SAFETY</div>
+            <div class="logo-sub">TRACKING, SAFETY AND MORE</div>
+        </div>
 
         <div class="company-info">
             <strong>M&M SAFETY DOO</strong><br>
