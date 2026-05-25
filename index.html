@@ -112,9 +112,9 @@ th{background:#0f172a;color:#94a3b8}
 
 .documents-grid{
     display:grid;
-    grid-template-columns:1fr 1fr;
+    grid-template-columns:repeat(4,1fr);
     gap:14px;
-    margin-top:15px;
+    margin-top:20px;
 }
 
 .document-folder-btn{
@@ -745,7 +745,7 @@ body.light-theme .obracun-k-table th{background:#eaf7ff;color:#475569}
 
 <!-- DOCUMENTS MODAL -->
 <div class="modal" id="documentsModal">
-    <div class="modal-box" style="width:850px;max-width:95%;">
+    <div class="modal-box" style="width:1150px;max-width:95%;">
         <div class="modal-header">
             <h2>Dokumenti</h2>
             <button class="close-btn" onclick="closeDocumentsModal()">X</button>
@@ -784,6 +784,15 @@ body.light-theme .obracun-k-table th{background:#eaf7ff;color:#475569}
                 <span>Sačuvani i povezani računi</span>
             </button>
 
+            <!-- FAKTURE FOLDER LINK -->
+            <button
+                class="document-folder-btn"
+                onclick="openDriveFolder('https://drive.google.com/drive/folders/1CeUQO1vYkxREPpa4jt2-p5PT0N0IsCvR?usp=sharing')"
+            >
+                <strong>Fakture</strong>
+                <span>Izdate i sačuvane fakture</span>
+            </button>
+
             <!-- IZVODI DINARSKI FOLDER LINK -->
             <button
                 class="document-folder-btn"
@@ -802,13 +811,22 @@ body.light-theme .obracun-k-table th{background:#eaf7ff;color:#475569}
                 <span>Devizni bankovni izvodi</span>
             </button>
 
-            <!-- FAKTURE FOLDER LINK -->
+            <!-- OBRAČUN - R FOLDER LINK -->
             <button
                 class="document-folder-btn"
-                onclick="openDriveFolder('https://drive.google.com/drive/folders/1CeUQO1vYkxREPpa4jt2-p5PT0N0IsCvR?usp=sharing')"
+                onclick="openDriveFolder('https://drive.google.com/drive/folders/1nJMpx2QCgg1baho7eZboWaIv5zrWkgGH?usp=sharing')"
             >
-                <strong>Fakture</strong>
-                <span>Izdate i sačuvane fakture</span>
+                <strong>Obračun - R</strong>
+                <span>PDF obračuni za račun</span>
+            </button>
+
+            <!-- OBRAČUN - K FOLDER LINK -->
+            <button
+                class="document-folder-btn"
+                onclick="openDriveFolder('https://drive.google.com/drive/folders/1-vkM_gYA-Dc83HhaUvvNAv2mc39j6OFA?usp=sharing')"
+            >
+                <strong>Obračun - K</strong>
+                <span>PDF obračuni za keš</span>
             </button>
 
         </div>
@@ -1073,6 +1091,7 @@ body.light-theme .obracun-k-table th{background:#eaf7ff;color:#475569}
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbx4UAAB4Pdj-yAT0jycublUFGYLmsjLJN5El4MT0jrxXdu8ZEZNQztnwtoK-0CnE4DgDw/exec";
+const GITHUB_LOGO_URL = "https://cdn.jsdelivr.net/gh/dackello77-cloud/accounting@main/assets/logo.png";
 
 let entitiesData = [];
 let lastTransactionData = null;
@@ -1413,11 +1432,7 @@ function renderCard(data, view){
 }
 
 function getLogoUrl(){
-    try{
-        return new URL("assets/logo.png", window.location.href).href;
-    }catch(e){
-        return "assets/logo.png";
-    }
+    return GITHUB_LOGO_URL;
 }
 
 async function preloadLogo(){
@@ -1435,7 +1450,7 @@ async function preloadLogo(){
 }
 
 function getDocumentLogo(){
-    return logoDataUrl || getLogoUrl();
+    return GITHUB_LOGO_URL;
 }
 
 function buildCardDocumentHtml(){
