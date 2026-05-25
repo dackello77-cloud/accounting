@@ -295,7 +295,6 @@ body.light-theme .email-chip{background:#dff4ff;color:#0f172a;border-color:#38bd
 .obracun-k-status{min-height:22px;color:#cbd5e1;font-weight:bold;margin-top:10px}
 .obracun-k-preview-box{background:#f8fafc;color:#111;border-radius:16px;padding:22px;border:1px solid #cbd5e1;max-height:780px;overflow:auto}
 .obracun-k-preview-head{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #111827;padding-bottom:12px;margin-bottom:16px}
-.obracun-k-preview-head img{width:140px}
 .obracun-k-preview-title{text-align:right}
 .obracun-k-preview-title h2{margin:0;font-size:23px;color:#111}
 .obracun-k-preview-title div{background:#111827;color:#fff;padding:8px 18px;margin-top:6px;font-weight:bold}
@@ -1543,7 +1542,6 @@ function buildCardDocumentHtml(){
     const ime = document.getElementById("cardName").value || "Sve";
     const from = document.getElementById("cardFrom").value;
     const to = document.getElementById("cardTo").value;
-    const logoUrl = getDocumentLogo();
 
     return `<html><head><title>Kartica</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111}.header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:15px;margin-bottom:25px}.logo{width:130px}h1{margin:0;font-size:26px}.info{margin-bottom:20px;font-size:14px}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #999;padding:8px;text-align:left;font-size:13px}th{background:#f1f5f9}.footer{margin-top:40px;font-size:12px;color:#555;text-align:center}
 
@@ -1893,7 +1891,6 @@ body.light-theme .receipt-item.active{background:#dff4ff}
 function buildTransactionDocumentHtml(){
     if(!lastTransactionData){return "";}
     const t = lastTransactionData;
-    const logoUrl = getDocumentLogo();
 
     return `<html><head><title>Transakcija</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111}.header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #111;padding-bottom:15px;margin-bottom:30px}.logo{width:130px}table{width:100%;border-collapse:collapse;margin-top:20px}td{border:1px solid #999;padding:12px;font-size:14px}.label{width:220px;font-weight:bold;background:#f1f5f9}.amount{font-size:22px;font-weight:bold}
 
@@ -2387,7 +2384,6 @@ function buildObracunRInnerHtml(){
     const month = document.getElementById("obracunMonth").value;
     const year = document.getElementById("obracunYear").value;
     const rate = getObracunRate();
-    const logo = getDocumentLogo();
     const tax = sumObracun('tax');
     const cost = sumObracun('cost');
     const salary = sumObracun('salary');
@@ -2407,8 +2403,8 @@ function buildObracunRInnerHtml(){
     };
 
     return `
-        <div class="obracun-preview-head">
-            <img src="${logo}" alt="Logo">
+        <div class="obracun-preview-head no-logo-head">
+            <div></div>
             <div class="obracun-preview-title">
                 <h2>PLATE I TROŠKOVI NA RAČUN</h2>
                 <div>${escapeHtml(month)} ${escapeHtml(year)}</div>
@@ -2441,11 +2437,10 @@ function buildObracunRDocumentHtml(){
         @page{size:A4 landscape;margin:4mm}
         *{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
         html,body{margin:0;padding:0;background:white;color:#111;font-family:Arial,sans-serif}
-        body{width:289mm;min-height:202mm;overflow:hidden}
-        .obracun-pdf-page{width:289mm;min-height:202mm;padding:5mm 6mm 4mm 6mm;overflow:hidden}
-        .obracun-preview-head{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #073b44;padding-bottom:7px;margin-bottom:9px}
-        .obracun-preview-head img{width:118px}
-        .obracun-preview-title{text-align:right}
+        body{width:auto;height:auto;overflow:visible}
+        .obracun-pdf-page{width:289mm;height:auto;max-height:198mm;padding:5mm 6mm 3mm 6mm;overflow:hidden}
+        .obracun-preview-head{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #073b44;padding-bottom:7px;margin-bottom:9px}.no-logo-head{min-height:45px}
+                .obracun-preview-title{text-align:right}
         .obracun-preview-title h2{margin:0;font-size:19px;line-height:1.1;color:#111827;letter-spacing:.2px}
         .obracun-preview-title div{background:#073b44;color:white;padding:5px 14px;margin-top:5px;font-weight:bold;font-size:12px;border-radius:2px}
         .obracun-preview-table{width:100%;border-collapse:collapse;margin-bottom:7px;font-size:8.7px;line-height:1.13;page-break-inside:avoid;border:1px solid #111827}
@@ -2459,7 +2454,7 @@ function buildObracunRDocumentHtml(){
         .obracun-preview-rate span:first-child{text-transform:uppercase}
         .obracun-pdf-page > div:nth-child(2){gap:10px!important}
         @media print{
-            html,body{width:289mm;min-height:202mm;overflow:hidden}
+            html,body{width:auto;height:auto;overflow:visible}
             .obracun-pdf-page{page-break-after:avoid;page-break-inside:avoid}
         }
     </style></head><body><div class="obracun-pdf-page">${buildObracunRInnerHtml()}</div></body></html>`;
@@ -2735,8 +2730,6 @@ function buildObracunKPreviewHtml(){
     const extraEnabled = state.extraEnabled;
     const extraTitle = state.extraTitle || "Dodatno";
     const extraType = state.extraType || "text";
-    const logoUrl = getDocumentLogo();
-
     const rows = (state.rows || []).map((row,idx)=>`
         <tr>
             <td style="text-align:center;width:45px;">${idx+1}</td>
@@ -2750,8 +2743,8 @@ function buildObracunKPreviewHtml(){
     const notes = (state.notes || "").trim();
 
     return `
-        <div class="obracun-k-preview-head">
-            <img src="${logoUrl}" alt="Logo">
+        <div class="obracun-k-preview-head no-logo-head">
+            <div></div>
             <div class="obracun-k-preview-title">
                 <h2>TROŠKOVI NA RUKE</h2>
                 <div>${escapeHtml(state.month)} ${escapeHtml(state.year)}</div>
@@ -2778,7 +2771,6 @@ function buildObracunKPdfHtml(){
     const extraEnabled = state.extraEnabled;
     const extraTitle = state.extraTitle || "Dodatno";
     const extraType = state.extraType || "text";
-    const logoUrl = getDocumentLogo();
     const notes = (state.notes || "").trim();
 
     const rows = (state.rows || []).map((row,idx)=>`
@@ -2801,7 +2793,6 @@ function buildObracunKPdfHtml(){
 *{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
 body{font-family:Arial,sans-serif;margin:0;color:#111;background:#fff;font-size:12px;}
 .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:4px solid #111827;padding-bottom:10px;}
-.logo{width:145px;}
 .title{text-align:right;}
 .title h1{font-size:22px;margin:0 0 6px 0;font-weight:900;letter-spacing:.3px;}
 .title div{background:#111827;color:#fff;padding:6px 16px;font-weight:800;display:inline-block;}
@@ -2816,11 +2807,11 @@ tbody tr:nth-child(even) td{background:#f3f4f6;}
 .notes{margin-top:14px;border:1px solid #111;}
 .notes-title{background:#1d4ed8;color:#fff;text-align:center;font-weight:900;padding:7px;text-transform:uppercase;}
 .notes-body{padding:12px;white-space:pre-wrap;line-height:1.45;font-size:12px;}
-html,body{height:auto!important;overflow:visible!important;}*{page-break-before:auto!important;break-before:auto!important;}</style>
+</style>
 </head>
 <body>
     <div class="header">
-        <div style="font-family:Arial,sans-serif;font-size:22px;font-weight:900;color:#111;line-height:1;">M&M SAFETY</div><div style="font-family:Arial,sans-serif;font-size:6px;font-weight:600;color:#64748b;margin-top:3px;letter-spacing:.25px;">TRACKING, SAFETY AND MORE</div>
+        <div></div>
         <div class="title">
             <h1>TROŠKOVI NA RUKE</h1>
             <div>${escapeHtml(state.month)} ${escapeHtml(state.year)}</div>
@@ -2927,7 +2918,6 @@ function buildObracunKEmailHtml(pdfFileName){
     const state = getObracunKState();
     const notes = (state.notes || "").trim();
     const message = document.getElementById("obracunKEmailMessage")?.value.trim() || "";
-    const logoUrl = getDocumentLogo();
     return `
         <div style="font-family:Arial,sans-serif;background:#eaf7ff;padding:22px;color:#0f172a;">
             <div style="max-width:760px;margin:auto;background:#ffffff;border-radius:22px;padding:24px;border:1px solid #d7e8f5;">
