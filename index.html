@@ -3144,49 +3144,203 @@ function buildInvoiceHtml(){
 
     items.forEach(item => {
         total += item.value;
-        rows += `<tr><td>${escapeHtml(item.service)}</td><td class="right">${formatMoney(item.qty)}</td><td class="right">${formatMoney(item.price)}</td><td class="right">${formatMoney(item.value)}</td></tr>`;
+        rows += `
+            <tr>
+                <td>${escapeHtml(item.service)}</td>
+                <td class="right">${formatMoney(item.qty)}</td>
+                <td class="right">${formatMoney(item.price)}</td>
+                <td class="right">${formatMoney(item.value)}</td>
+            </tr>
+        `;
     });
 
-    if(!rows) rows = `<tr><td>&nbsp;</td><td class="right">0,00</td><td class="right">0,00</td><td class="right">0,00</td></tr>`;
+    if(!rows){
+        rows = `<tr><td>&nbsp;</td><td class="right">0,00</td><td class="right">0,00</td><td class="right">0,00</td></tr>`;
+    }
 
     return `
 <html>
 <head>
 <title>Faktura ${escapeHtml(invoiceNumber)}</title>
 <style>
-@page{size:A4;margin:18mm}
-*{box-sizing:border-box}
-body{font-family:Arial,sans-serif;color:#111;margin:0;padding:0;background:#fff;font-size:12px;line-height:1.32}
-.invoice-wrap{width:100%;max-width:680px;margin:0 auto}
-.header{display:flex;justify-content:space-between;align-items:flex-start;gap:28px;margin-bottom:42px}
-.logo-text{font-size:21px;font-weight:900;letter-spacing:.2px;color:#111;line-height:1}
-.logo-sub{font-size:6px;color:#5f6b7a;margin-top:3px;letter-spacing:.2px}
-.company-info{text-align:right;line-height:1.35;font-size:11px}
-.company-info strong{font-size:14px}
-.client-row{display:grid;grid-template-columns:1fr 1fr;gap:34px;align-items:start;margin-bottom:36px}
-.client-box{background:#eef0f4;border:1px solid #c9ced8;padding:22px 16px;min-height:95px;line-height:1.35}
-.client-box strong{font-size:13px}
-.details{text-align:right;line-height:1.55;font-size:12px}
-.en,.small-muted{color:#5f6b7a;font-style:italic;font-weight:500}
-table{width:100%;border-collapse:collapse;margin-top:0}
-th{background:#e1e5ec;color:#111;border:1px solid #c9ced8;padding:9px 8px;text-align:left;font-size:11px;font-weight:900}
-td{border:1px solid #c9ced8;padding:9px 8px;font-size:11px;vertical-align:top}
-.right{text-align:right}
-.total-row td{background:#e1e5ec;font-weight:900}
-.summary{margin-top:34px;font-weight:900;font-size:13px}
-.bank{margin-top:26px;color:#111;line-height:1.35;font-size:11px}
-.footer{margin-top:28px;background:#eef0f4;border:1px solid #c9ced8;color:#111;font-size:11px;line-height:1.35;padding:10px}
-.responsible{margin-top:24px;font-size:11px;line-height:1.25}
+@page{
+    size:A4;
+    margin:18mm;
+}
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    font-family:Arial,sans-serif;
+    color:#111111;
+    margin:0;
+    padding:0;
+    background:#ffffff;
+    font-size:12px;
+    line-height:1.32;
+}
+
+.invoice-wrap{
+    width:100%;
+    max-width:680px;
+    margin:0 auto;
+}
+
+.header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:28px;
+    margin-bottom:42px;
+}
+
+.logo-text{
+    font-size:21px;
+    font-weight:900;
+    letter-spacing:.2px;
+    color:#111111;
+    line-height:1;
+}
+
+.logo-sub{
+    font-size:6px;
+    color:#5f6b7a;
+    margin-top:3px;
+    letter-spacing:.2px;
+}
+
+.company-info{
+    text-align:right;
+    line-height:1.35;
+    font-size:11px;
+}
+
+.company-info strong{
+    font-size:14px;
+}
+
+.client-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:34px;
+    align-items:start;
+    margin-bottom:36px;
+}
+
+.client-box{
+    background:#f1f3f6;
+    border:1px solid #cfd5df;
+    padding:22px 16px;
+    min-height:95px;
+    line-height:1.35;
+}
+
+.client-box strong{
+    font-size:13px;
+}
+
+.details{
+    text-align:right;
+    line-height:1.55;
+    font-size:12px;
+}
+
+.en,
+.small-muted{
+    color:#5f6b7a;
+    font-style:italic;
+    font-weight:500;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:0;
+}
+
+th{
+    background:#e8ebf0;
+    color:#111111;
+    border:1px solid #c5ccd6;
+    padding:9px 8px;
+    text-align:left;
+    font-size:11px;
+    font-weight:900;
+}
+
+td{
+    border:1px solid #c5ccd6;
+    padding:9px 8px;
+    font-size:11px;
+    vertical-align:top;
+}
+
+.right{
+    text-align:right;
+}
+
+.total-row td{
+    background:#e8ebf0;
+    font-weight:900;
+}
+
+.summary{
+    margin-top:34px;
+    font-weight:900;
+    font-size:13px;
+}
+
+.bank{
+    margin-top:26px;
+    color:#111111;
+    line-height:1.35;
+    font-size:11px;
+}
+
+.footer{
+    margin-top:28px;
+    background:#f1f3f6;
+    border:1px solid #cfd5df;
+    color:#111111;
+    font-size:11px;
+    line-height:1.35;
+    padding:10px 12px;
+}
+
+.responsible{
+    margin-top:24px;
+    font-size:11px;
+    line-height:1.25;
+}
 </style>
 </head>
+
 <body>
 <div class="invoice-wrap">
+
     <div class="header">
-        <div><div class="logo-text">M&M SAFETY</div><div class="logo-sub">TRACKING, SAFETY AND MORE</div></div>
-        <div class="company-info"><strong>M&M SAFETY DOO</strong><br>Majakovskog 34, 18000 Niš<br>Poreski br.: 113867473, Matični broj: 21937843<br>tel: +381 62 279 220, email: mmsafetydoo@gmail.com</div>
+        <div>
+            <div class="logo-text">M&M SAFETY</div>
+            <div class="logo-sub">TRACKING, SAFETY AND MORE</div>
+        </div>
+
+        <div class="company-info">
+            <strong>M&M SAFETY DOO</strong><br>
+            Majakovskog 34, 18000 Niš<br>
+            Poreski br.: 113867473, Matični broj: 21937843<br>
+            tel: +381 62 279 220, email: mmsafetydoo@gmail.com
+        </div>
     </div>
+
     <div class="client-row">
-        <div class="client-box"><strong>${escapeHtml(company)}</strong><br>${escapeHtml(address).replace(/\n/g, "<br>")}<br>${ziro ? "Account: " + escapeHtml(ziro) : ""}</div>
+        <div class="client-box">
+            <strong>${escapeHtml(company)}</strong><br>
+            ${escapeHtml(address).replace(/\n/g, "<br>")}
+            ${ziro ? "<br>" + escapeHtml(ziro) : ""}
+        </div>
+
         <div class="details">
             <strong>Broj računa / <span class="en">Invoice number:</span> ${escapeHtml(invoiceNumber)}</strong><br>
             <strong>Datum izdavanja / <span class="en">Issue date:</span> ${escapeHtml(issueDate)}</strong><br>
@@ -3194,14 +3348,48 @@ td{border:1px solid #c9ced8;padding:9px 8px;font-size:11px;vertical-align:top}
             <strong>Mesto izdavanja računa / <span class="en">Place of billing:</span> ${escapeHtml(place)}</strong>
         </div>
     </div>
+
     <table>
-        <thead><tr><th>Vrsta usluge / <span class="en">Type of service</span></th><th class="right">Količina / <span class="en">Qty</span></th><th class="right">Cena / <span class="en">Price</span></th><th class="right">Vrednost / <span class="en">Total</span></th></tr></thead>
-        <tbody>${rows}<tr class="total-row"><td colspan="3" class="right">Ukupno / <span class="en">Total:</span></td><td class="right">${formatMoney(total)}</td></tr></tbody>
+        <thead>
+            <tr>
+                <th>Vrsta usluge / <span class="en">Type of service</span></th>
+                <th class="right">Količina / <span class="en">Qty</span></th>
+                <th class="right">Cena / <span class="en">Price</span></th>
+                <th class="right">Vrednost / <span class="en">Total</span></th>
+            </tr>
+        </thead>
+
+        <tbody>
+            ${rows}
+
+            <tr class="total-row">
+                <td colspan="3" class="right">Ukupno / <span class="en">Total:</span></td>
+                <td class="right">${formatMoney(total)}</td>
+            </tr>
+        </tbody>
     </table>
-    <div class="summary">Ukupno u ${currency} / <span class="en">Total in ${currency}:</span> ${formatMoney(total)}</div>
-    <div class="bank">Banka / <span class="en">Bank:</span> Banca Intesa<br>Broj Računa / <span class="en">Account number:</span> 160-6000001770008-96 RSD<br>160-6000001770455-16 USD</div>
-    <div class="footer">Dokument je izdan elektronskim putem, te je valjan bez pečata i potpisa. /<br><span class="en">The document was issued electronically and is valid without a seal or signature.</span></div>
-    <div class="responsible"><strong>Podaci o odgovornom licu / <span class="en">Data about the responsible person</span></strong><br>Dalibor Spasic<br>Milenka Hadzica 015</div>
+
+    <div class="summary">
+        Ukupno u ${currency} / <span class="en">Total in ${currency}:</span> ${formatMoney(total)}
+    </div>
+
+    <div class="bank">
+        Banka / <span class="en">Bank:</span> Banca Intesa<br>
+        Broj Računa / <span class="en">Account number:</span> 160-6000001770008-96 RSD<br>
+        160-6000001770455-16 USD
+    </div>
+
+    <div class="footer">
+        Dokument je izdan elektronskim putem, te je valjan bez pečata i potpisa. /<br>
+        <span class="en">The document was issued electronically and is valid without a seal or signature.</span>
+    </div>
+
+    <div class="responsible">
+        <strong>Podaci o odgovornom licu / <span class="en">Data about the responsible person</span></strong><br>
+        Dalibor Spasic<br>
+        Milenka Hadzica 015
+    </div>
+
 </div>
 </body>
 </html>`;
