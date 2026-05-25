@@ -1949,8 +1949,60 @@ const OBRACUN_R_FOLDER_URL = "https://drive.google.com/drive/folders/1nJMpx2QCgg
 let obracunData = {tax:[], cost:[], salary:[]};
 let obracunEmails = [];
 let selectedObracunEmails = [];
+let obracunStateLoaded = false;
+
+function loadObracunRState(){
+    if(obracunStateLoaded){return;}
+    obracunStateLoaded = true;
+
+    try{
+        const raw = localStorage.getItem("obracunRState");
+        if(!raw){return;}
+
+        const saved = JSON.parse(raw);
+
+        if(saved && saved.data){
+            obracunData = saved.data;
+        }
+
+        if(saved.month && document.getElementById("obracunMonth")){
+            document.getElementById("obracunMonth").value = saved.month;
+        }
+
+        if(saved.year && document.getElementById("obracunYear")){
+            document.getElementById("obracunYear").value = saved.year;
+        }
+
+        if(saved.rate !== undefined && document.getElementById("obracunRate")){
+            document.getElementById("obracunRate").value = saved.rate;
+        }
+
+        if(saved.defaultSalary !== undefined && document.getElementById("defaultSalaryRsd")){
+            document.getElementById("defaultSalaryRsd").value = saved.defaultSalary;
+        }
+    }catch(error){
+        console.log("Obračun R state load error", error);
+    }
+}
+
+function saveObracunRState(){
+    try{
+        const state = {
+            data: obracunData,
+            month: document.getElementById("obracunMonth") ? document.getElementById("obracunMonth").value : "",
+            year: document.getElementById("obracunYear") ? document.getElementById("obracunYear").value : "",
+            rate: document.getElementById("obracunRate") ? document.getElementById("obracunRate").value : "",
+            defaultSalary: document.getElementById("defaultSalaryRsd") ? document.getElementById("defaultSalaryRsd").value : ""
+        };
+
+        localStorage.setItem("obracunRState", JSON.stringify(state));
+    }catch(error){
+        console.log("Obračun R state save error", error);
+    }
+}
 
 function openObracunRModal(){
+    loadObracunRState();
     initObracunRDefaults();
     document.getElementById("obracunRModal").style.display = "flex";
     if(obracunData.tax.length === 0){addObracunRow('tax');}
@@ -2044,6 +2096,8 @@ function renderObracunR(updateRows = true){
 
     const preview = document.getElementById('obracunPreview');
     if(preview){preview.innerHTML = buildObracunRInnerHtml();}
+
+    saveObracunRState();
 }
 
 async function loadObracunEmployees(){
@@ -2119,11 +2173,28 @@ function buildObracunRInnerHtml(){
 
 function buildObracunRDocumentHtml(){
     return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Obračun - R</title><style>
-        body{font-family:Arial,sans-serif;color:#111;padding:20px;background:white}
-        .obracun-preview-head{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #0f3f46;padding-bottom:12px;margin-bottom:16px}
-        .obracun-preview-head img{width:145px}.obracun-preview-title{text-align:right}.obracun-preview-title h2{margin:0;font-size:24px}.obracun-preview-title div{background:#0f3f46;color:white;padding:8px 18px;margin-top:6px;font-weight:bold}
-        .obracun-preview-table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:12px}.obracun-preview-table th{background:#0f3f46;color:white;border:1px solid #1f2937;padding:7px;text-align:left}.obracun-preview-table td{border:1px solid #1f2937;padding:6px;color:#111}.obracun-preview-total td{background:#0f3f46!important;color:white!important;font-weight:bold}.obracun-preview-rate{background:#ef4444;color:white;font-weight:bold;padding:10px;margin:12px 0;border-radius:4px;display:flex;justify-content:space-between}@page{size:A4 landscape;margin:8mm}
-    </style></head><body>${buildObracunRInnerHtml()}</body></html>`;
+        @page{size:A4 landscape;margin:3mm}
+        *{box-sizing:border-box}
+        html,body{margin:0;padding:0;background:white;color:#111;font-family:Arial,sans-serif}
+        body{width:291mm;min-height:204mm;overflow:hidden}
+        .obracun-pdf-page{width:291mm;min-height:204mm;padding:4mm 5mm 3mm 5mm;overflow:hidden}
+        .obracun-preview-head{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0f3f46;padding-bottom:5px;margin-bottom:7px}
+        .obracun-preview-head img{width:112px}
+        .obracun-preview-title{text-align:right}
+        .obracun-preview-title h2{margin:0;font-size:18px;line-height:1.1}
+        .obracun-preview-title div{background:#0f3f46;color:white;padding:4px 12px;margin-top:4px;font-weight:bold;font-size:12px}
+        .obracun-preview-table{width:100%;border-collapse:collapse;margin-bottom:6px;font-size:8.5px;line-height:1.1;page-break-inside:avoid}
+        .obracun-preview-table th{background:#0f3f46;color:white;border:1px solid #1f2937;padding:3px 4px;text-align:left}
+        .obracun-preview-table td{border:1px solid #1f2937;padding:2px 4px;color:#111;vertical-align:middle}
+        .obracun-preview-table td:first-child{padding-left:4px;padding-right:4px}
+        .obracun-preview-total td{background:#0f3f46!important;color:white!important;font-weight:bold}
+        .obracun-preview-rate{background:#ef4444;color:white;font-weight:bold;padding:5px 8px;margin:6px 0;border-radius:3px;display:flex;justify-content:space-between;font-size:10px}
+        .obracun-pdf-page > div:nth-child(2){gap:8px!important}
+        @media print{
+            html,body{width:291mm;min-height:204mm;overflow:hidden}
+            .obracun-pdf-page{page-break-after:avoid;page-break-inside:avoid}
+        }
+    </style></head><body><div class="obracun-pdf-page">${buildObracunRInnerHtml()}</div></body></html>`;
 }
 
 function printObracunR(){
