@@ -337,6 +337,11 @@ body.light-theme .invoice-email-box{background:rgba(255,255,255,.75);color:#0f17
 body.light-theme .invoice-items-table th{background:#eaf7ff;color:#475569}
 @media(max-width:1200px){.invoice-layout,.invoice-grid,.invoice-grid-3{grid-template-columns:1fr}.invoice-preview{display:none}}
 
+
+/* TEXT LOGO FIX ZA OBRACUN R/K */
+.obracun-text-logo,.obracun-k-text-logo{display:inline-block;line-height:1}
+.obracun-logo-main,.obracun-k-logo-main{font-size:18px;font-weight:900;color:#111;letter-spacing:.2px;white-space:nowrap}
+.obracun-logo-sub,.obracun-k-logo-sub{font-size:5px;font-weight:600;color:#555;margin-top:2px;letter-spacing:.2px;white-space:nowrap}
 </style>
 </head>
 
@@ -2387,11 +2392,17 @@ function buildObracunRInnerHtml(){
     const month = document.getElementById("obracunMonth").value;
     const year = document.getElementById("obracunYear").value;
     const rate = getObracunRate();
-    const logo = getDocumentLogo();
     const tax = sumObracun('tax');
     const cost = sumObracun('cost');
     const salary = sumObracun('salary');
     const total = tax + cost + salary;
+
+    const textLogo = `
+        <div class="obracun-text-logo">
+            <div class="obracun-logo-main">M&M SAFETY</div>
+            <div class="obracun-logo-sub">TRACKING, SAFETY AND MORE</div>
+        </div>
+    `;
 
     const sectionTable = (title, rows, withRb=true) => {
         const headStyle = 'background:#073b44!important;color:#ffffff!important;font-weight:800;text-transform:uppercase;letter-spacing:.2px;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;';
@@ -2408,7 +2419,7 @@ function buildObracunRInnerHtml(){
 
     return `
         <div class="obracun-preview-head">
-            <div style="font-family:Arial,sans-serif;font-size:18px;font-weight:900;color:#111;line-height:1;">M&M SAFETY<div style="font-size:6px;color:#5f6b7a;margin-top:3px;">TRACKING, SAFETY AND MORE</div></div>
+            ${textLogo}
             <div class="obracun-preview-title">
                 <h2>PLATE I TROŠKOVI NA RAČUN</h2>
                 <div>${escapeHtml(month)} ${escapeHtml(year)}</div>
@@ -2438,29 +2449,32 @@ function buildObracunRInnerHtml(){
 
 function buildObracunRDocumentHtml(){
     return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Obračun - R</title><style>
-        @page{size:A4 landscape;margin:4mm}
+        @page{size:A4 landscape;margin:3mm}
         *{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-        html,body{margin:0;padding:0;background:white;color:#111;font-family:Arial,sans-serif}
-        body{width:289mm;min-height:202mm;overflow:hidden}
-        .obracun-pdf-page{width:289mm;min-height:202mm;padding:5mm 6mm 4mm 6mm;overflow:hidden}
-        .obracun-preview-head{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #073b44;padding-bottom:7px;margin-bottom:9px}
-        .obracun-preview-head img{width:118px}
+        html,body{margin:0!important;padding:0!important;background:white;color:#111;font-family:Arial,sans-serif;width:auto!important;height:auto!important;min-height:0!important;overflow:visible!important}
+        body{overflow:visible!important}
+        .obracun-pdf-page{width:291mm;min-height:0!important;height:auto!important;padding:4mm 5mm 3mm 5mm;overflow:visible!important;page-break-before:auto!important;page-break-after:auto!important;page-break-inside:avoid!important}
+        .obracun-text-logo{display:inline-block;line-height:1}
+        .obracun-logo-main{font-size:18px;font-weight:900;color:#111;letter-spacing:.2px;white-space:nowrap}
+        .obracun-logo-sub{font-size:5px;font-weight:600;color:#555;margin-top:2px;letter-spacing:.2px;white-space:nowrap}
+        .obracun-preview-head{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #073b44;padding-bottom:6px;margin-bottom:8px;page-break-inside:avoid!important}
         .obracun-preview-title{text-align:right}
-        .obracun-preview-title h2{margin:0;font-size:19px;line-height:1.1;color:#111827;letter-spacing:.2px}
-        .obracun-preview-title div{background:#073b44;color:white;padding:5px 14px;margin-top:5px;font-weight:bold;font-size:12px;border-radius:2px}
-        .obracun-preview-table{width:100%;border-collapse:collapse;margin-bottom:7px;font-size:8.7px;line-height:1.13;page-break-inside:avoid;border:1px solid #111827}
-        .obracun-preview-table th{background:#073b44!important;color:white!important;border:1px solid #111827;padding:4px 5px;text-align:left;font-weight:bold;text-transform:uppercase;letter-spacing:.15px}
-        .obracun-preview-table td{border:1px solid #374151;padding:3px 5px;color:#111;vertical-align:middle}
+        .obracun-preview-title h2{margin:0;font-size:18px;line-height:1.05;color:#111827;letter-spacing:.2px}
+        .obracun-preview-title div{background:#073b44;color:white;padding:4px 13px;margin-top:4px;font-weight:bold;font-size:11px;border-radius:2px}
+        .obracun-preview-table{width:100%;border-collapse:collapse;margin-bottom:6px;font-size:8.2px;line-height:1.08;page-break-inside:avoid!important;border:1px solid #111827}
+        .obracun-preview-table th{background:#073b44!important;color:white!important;border:1px solid #111827;padding:3px 4px;text-align:left;font-weight:bold;text-transform:uppercase;letter-spacing:.1px}
+        .obracun-preview-table td{border:1px solid #374151;padding:2px 4px;color:#111;vertical-align:middle}
         .obracun-preview-table tbody tr:nth-child(odd) td{background:#ffffff}
         .obracun-preview-table tbody tr:nth-child(even) td{background:#eef2f7}
-        .obracun-preview-table td:first-child{padding-left:5px;padding-right:5px;font-weight:500}
+        .obracun-preview-table td:first-child{padding-left:4px;padding-right:4px;font-weight:500}
         .obracun-preview-total td{background:#073b44!important;color:white!important;font-weight:bold}
-        .obracun-preview-rate{background:#b91c1c;color:white;font-weight:bold;padding:7px 10px;margin:8px 0;border-radius:4px;display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:.2px;border:1px solid #7f1d1d}
+        .obracun-preview-rate{background:#b91c1c;color:white;font-weight:bold;padding:5px 8px;margin:6px 0;border-radius:4px;display:flex;justify-content:space-between;align-items:center;font-size:10px;letter-spacing:.2px;border:1px solid #7f1d1d;page-break-inside:avoid!important}
         .obracun-preview-rate span:first-child{text-transform:uppercase}
-        .obracun-pdf-page > div:nth-child(2){gap:10px!important}
+        .obracun-pdf-page > div:nth-child(2){gap:9px!important}
+        .page-break{display:none!important}
         @media print{
-            html,body{width:289mm;min-height:202mm;overflow:hidden}
-            .obracun-pdf-page{page-break-after:avoid;page-break-inside:avoid}
+            html,body{margin:0!important;padding:0!important;width:auto!important;height:auto!important;min-height:0!important;overflow:visible!important}
+            .obracun-pdf-page{page-break-before:auto!important;page-break-after:auto!important;page-break-inside:avoid!important}
         }
     </style></head><body><div class="obracun-pdf-page">${buildObracunRInnerHtml()}</div></body></html>`;
 }
@@ -2735,7 +2749,6 @@ function buildObracunKPreviewHtml(){
     const extraEnabled = state.extraEnabled;
     const extraTitle = state.extraTitle || "Dodatno";
     const extraType = state.extraType || "text";
-    const logoUrl = getDocumentLogo();
 
     const rows = (state.rows || []).map((row,idx)=>`
         <tr>
@@ -2751,7 +2764,10 @@ function buildObracunKPreviewHtml(){
 
     return `
         <div class="obracun-k-preview-head">
-            <img src="${logoUrl}" alt="Logo">
+            <div class="obracun-k-text-logo">
+                <div class="obracun-k-logo-main">M&M SAFETY</div>
+                <div class="obracun-k-logo-sub">TRACKING, SAFETY AND MORE</div>
+            </div>
             <div class="obracun-k-preview-title">
                 <h2>TROŠKOVI NA RUKE</h2>
                 <div>${escapeHtml(state.month)} ${escapeHtml(state.year)}</div>
@@ -2778,7 +2794,6 @@ function buildObracunKPdfHtml(){
     const extraEnabled = state.extraEnabled;
     const extraTitle = state.extraTitle || "Dodatno";
     const extraType = state.extraType || "text";
-    const logoUrl = getDocumentLogo();
     const notes = (state.notes || "").trim();
 
     const rows = (state.rows || []).map((row,idx)=>`
@@ -2799,9 +2814,11 @@ function buildObracunKPdfHtml(){
 <style>
 @page{size:A4 portrait;margin:8mm;}
 *{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
-body{font-family:Arial,sans-serif;margin:0;color:#111;background:#fff;font-size:12px;}
+html,body{margin:0;padding:0;color:#111;background:#fff;font-family:Arial,sans-serif;font-size:12px;}
 .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:4px solid #111827;padding-bottom:10px;}
-.logo{width:145px;}
+.logo-text{display:inline-block;line-height:1;}
+.logo-main{font-size:20px;font-weight:900;color:#111;letter-spacing:.2px;white-space:nowrap;}
+.logo-sub{font-size:6px;font-weight:600;color:#555;margin-top:3px;letter-spacing:.2px;white-space:nowrap;}
 .title{text-align:right;}
 .title h1{font-size:22px;margin:0 0 6px 0;font-weight:900;letter-spacing:.3px;}
 .title div{background:#111827;color:#fff;padding:6px 16px;font-weight:800;display:inline-block;}
@@ -2820,7 +2837,10 @@ tbody tr:nth-child(even) td{background:#f3f4f6;}
 </head>
 <body>
     <div class="header">
-        <div class="logo" style="font-family:Arial,sans-serif;font-size:20px;font-weight:900;color:#111;line-height:1;width:145px;">M&M SAFETY<div style="font-size:6px;color:#5f6b7a;margin-top:3px;">TRACKING, SAFETY AND MORE</div></div>
+        <div class="logo-text">
+            <div class="logo-main">M&M SAFETY</div>
+            <div class="logo-sub">TRACKING, SAFETY AND MORE</div>
+        </div>
         <div class="title">
             <h1>TROŠKOVI NA RUKE</h1>
             <div>${escapeHtml(state.month)} ${escapeHtml(state.year)}</div>
@@ -3146,51 +3166,177 @@ function buildInvoiceHtml(){
         total += item.value;
         rows += `
             <tr>
-                <td style="border:1px solid #374151;padding:9px 8px;font-size:11px;vertical-align:top;background:#ffffff;color:#111;">${escapeHtml(item.service)}</td>
-                <td style="border:1px solid #374151;padding:9px 8px;font-size:11px;vertical-align:top;background:#ffffff;color:#111;text-align:right;">${formatMoney(item.qty)}</td>
-                <td style="border:1px solid #374151;padding:9px 8px;font-size:11px;vertical-align:top;background:#ffffff;color:#111;text-align:right;">${formatMoney(item.price)}</td>
-                <td style="border:1px solid #374151;padding:9px 8px;font-size:11px;vertical-align:top;background:#ffffff;color:#111;text-align:right;">${formatMoney(item.value)}</td>
+                <td>${escapeHtml(item.service)}</td>
+                <td class="right">${formatMoney(item.qty)}</td>
+                <td class="right">${formatMoney(item.price)}</td>
+                <td class="right">${formatMoney(item.value)}</td>
             </tr>
         `;
     });
 
     if(!rows){
-        rows = `
-            <tr>
-                <td style="border:1px solid #374151;padding:9px 8px;background:#ffffff;">&nbsp;</td>
-                <td style="border:1px solid #374151;padding:9px 8px;background:#ffffff;text-align:right;">0,00</td>
-                <td style="border:1px solid #374151;padding:9px 8px;background:#ffffff;text-align:right;">0,00</td>
-                <td style="border:1px solid #374151;padding:9px 8px;background:#ffffff;text-align:right;">0,00</td>
-            </tr>
-        `;
+        rows = `<tr><td>&nbsp;</td><td class="right">0,00</td><td class="right">0,00</td><td class="right">0,00</td></tr>`;
     }
 
     return `
 <html>
 <head>
-<meta charset="UTF-8">
 <title>Faktura ${escapeHtml(invoiceNumber)}</title>
 <style>
-@page{size:A4;margin:18mm}
-*{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-html,body{margin:0;padding:0;background:#fff;color:#111;font-family:Arial,sans-serif}
-body{font-size:12px;line-height:1.32}
-.invoice-wrap{width:100%;max-width:680px;margin:0 auto}
-.header{display:flex;justify-content:space-between;align-items:flex-start;gap:28px;margin-bottom:42px}
-.logo-text{font-size:21px;font-weight:900;letter-spacing:.2px;color:#111;line-height:1}
-.logo-sub{font-size:6px;color:#5f6b7a;margin-top:3px;letter-spacing:.2px}
-.company-info{text-align:right;line-height:1.35;font-size:11px}
-.company-info strong{font-size:14px}
-.client-row{display:grid;grid-template-columns:1fr 1fr;gap:34px;align-items:start;margin-bottom:36px}
-.client-box{background:#eef2f7!important;border:1px solid #374151;padding:22px 16px;min-height:95px;line-height:1.35;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-.client-box strong{font-size:13px}
-.details{text-align:right;line-height:1.55;font-size:12px}
-.en,.small-muted{color:#5f6b7a!important;font-style:italic;font-weight:500}
-.summary{margin-top:34px;font-weight:900;font-size:13px}
-.bank{margin-top:26px;color:#111;line-height:1.35;font-size:11px}
-.responsible{margin-top:24px;font-size:11px;line-height:1.25}
+@page{
+    size:A4;
+    margin:18mm;
+}
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    font-family:Arial,sans-serif;
+    color:#111111;
+    margin:0;
+    padding:0;
+    background:#ffffff;
+    font-size:12px;
+    line-height:1.32;
+}
+
+.invoice-wrap{
+    width:100%;
+    max-width:680px;
+    margin:0 auto;
+}
+
+.header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:28px;
+    margin-bottom:42px;
+}
+
+.logo-text{
+    font-size:21px;
+    font-weight:900;
+    letter-spacing:.2px;
+    color:#111111;
+    line-height:1;
+}
+
+.logo-sub{
+    font-size:6px;
+    color:#5f6b7a;
+    margin-top:3px;
+    letter-spacing:.2px;
+}
+
+.company-info{
+    text-align:right;
+    line-height:1.35;
+    font-size:11px;
+}
+
+.company-info strong{
+    font-size:14px;
+}
+
+.client-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:34px;
+    align-items:start;
+    margin-bottom:36px;
+}
+
+.client-box{
+    background:#f1f3f6;
+    border:1px solid #cfd5df;
+    padding:22px 16px;
+    min-height:95px;
+    line-height:1.35;
+}
+
+.client-box strong{
+    font-size:13px;
+}
+
+.details{
+    text-align:right;
+    line-height:1.55;
+    font-size:12px;
+}
+
+.en,
+.small-muted{
+    color:#5f6b7a;
+    font-style:italic;
+    font-weight:500;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:0;
+}
+
+th{
+    background:#e8ebf0;
+    color:#111111;
+    border:1px solid #c5ccd6;
+    padding:9px 8px;
+    text-align:left;
+    font-size:11px;
+    font-weight:900;
+}
+
+td{
+    border:1px solid #c5ccd6;
+    padding:9px 8px;
+    font-size:11px;
+    vertical-align:top;
+}
+
+.right{
+    text-align:right;
+}
+
+.total-row td{
+    background:#e8ebf0;
+    font-weight:900;
+}
+
+.summary{
+    margin-top:34px;
+    font-weight:900;
+    font-size:13px;
+}
+
+.bank{
+    margin-top:26px;
+    color:#111111;
+    line-height:1.35;
+    font-size:11px;
+}
+
+.footer{
+    margin-top:28px;
+    background:#f1f3f6;
+    border:1px solid #cfd5df;
+    color:#111111;
+    font-size:11px;
+    line-height:1.35;
+    padding:10px 12px;
+}
+
+.responsible{
+    margin-top:24px;
+    font-size:11px;
+    line-height:1.25;
+}
 </style>
 </head>
+
 <body>
 <div class="invoice-wrap">
 
@@ -3223,20 +3369,22 @@ body{font-size:12px;line-height:1.32}
         </div>
     </div>
 
-    <table style="width:100%;border-collapse:collapse;margin-top:0;">
+    <table>
         <thead>
             <tr>
-                <th style="background:#073b44!important;color:#ffffff!important;border:1px solid #374151;padding:9px 8px;text-align:left;font-size:11px;font-weight:900;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;">Vrsta usluge / <span style="color:#dbeafe;font-style:italic;font-weight:500;">Type of service</span></th>
-                <th style="background:#073b44!important;color:#ffffff!important;border:1px solid #374151;padding:9px 8px;text-align:right;font-size:11px;font-weight:900;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;">Količina / <span style="color:#dbeafe;font-style:italic;font-weight:500;">Qty</span></th>
-                <th style="background:#073b44!important;color:#ffffff!important;border:1px solid #374151;padding:9px 8px;text-align:right;font-size:11px;font-weight:900;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;">Cena / <span style="color:#dbeafe;font-style:italic;font-weight:500;">Price</span></th>
-                <th style="background:#073b44!important;color:#ffffff!important;border:1px solid #374151;padding:9px 8px;text-align:right;font-size:11px;font-weight:900;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;">Vrednost / <span style="color:#dbeafe;font-style:italic;font-weight:500;">Total</span></th>
+                <th>Vrsta usluge / <span class="en">Type of service</span></th>
+                <th class="right">Količina / <span class="en">Qty</span></th>
+                <th class="right">Cena / <span class="en">Price</span></th>
+                <th class="right">Vrednost / <span class="en">Total</span></th>
             </tr>
         </thead>
+
         <tbody>
             ${rows}
-            <tr>
-                <td colspan="3" style="background:#073b44!important;color:#ffffff!important;border:1px solid #374151;padding:9px 8px;font-size:11px;font-weight:900;text-align:right;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;">Ukupno / <span style="color:#dbeafe;font-style:italic;font-weight:500;">Total:</span></td>
-                <td style="background:#073b44!important;color:#ffffff!important;border:1px solid #374151;padding:9px 8px;font-size:11px;font-weight:900;text-align:right;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;">${formatMoney(total)}</td>
+
+            <tr class="total-row">
+                <td colspan="3" class="right">Ukupno / <span class="en">Total:</span></td>
+                <td class="right">${formatMoney(total)}</td>
             </tr>
         </tbody>
     </table>
@@ -3251,7 +3399,7 @@ body{font-size:12px;line-height:1.32}
         160-6000001770455-16 USD
     </div>
 
-    <div style="margin-top:28px;background:#eef2f7!important;border:1px solid #374151;color:#111;font-size:11px;line-height:1.35;padding:10px 12px;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;">
+    <div class="footer">
         Dokument je izdan elektronskim putem, te je valjan bez pečata i potpisa. /<br>
         <span class="en">The document was issued electronically and is valid without a seal or signature.</span>
     </div>
