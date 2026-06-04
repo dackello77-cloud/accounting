@@ -372,7 +372,6 @@ body{min-height:100vh}
 #dashboard{min-height:100vh}
 #dashboard .main,
 #dashboard .sidebar-logo,
-#dashboard .sidebar-reminders,
 #dashboard .top-tools{display:none!important}
 #dashboard .sidebar{
     width:100%;
@@ -409,6 +408,18 @@ body.light-theme #dashboard .menu .mobile-notes-button{
     background:#2563eb;
     color:white;
 }
+#dashboard .sidebar-reminders{
+    display:block!important;
+    width:100%;
+    max-width:320px;
+    margin:16px 0 0;
+    max-height:36vh;
+    overflow:auto;
+}
+#dashboard .sidebar-reminders h3{
+    font-size:15px;
+    margin-bottom:10px;
+}
 #notesModal{align-items:stretch}
 #notesModal .modal-box{
     width:100%!important;
@@ -420,6 +431,19 @@ body.light-theme #dashboard .menu .mobile-notes-button{
 }
 #notesModal .invoice-grid,
 #notesModal .action-row{grid-template-columns:1fr!important}
+#notesModal .input-group{min-width:0}
+#notesModal input,
+#notesModal select,
+#notesModal textarea{
+    max-width:100%;
+    min-width:0;
+}
+#noteReminderAt{
+    display:block;
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+}
 #notesModal .modal-header h2{font-size:22px}
 }
 
