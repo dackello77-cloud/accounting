@@ -428,20 +428,26 @@ body.light-theme #dashboard .menu .mobile-notes-button{
     max-height:100vh;
     border-radius:0;
     padding:18px;
+    overflow-x:hidden;
 }
 #notesModal .invoice-grid,
 #notesModal .action-row{grid-template-columns:1fr!important}
-#notesModal .input-group{min-width:0}
+#notesModal .invoice-grid,
+#notesModal .input-group{min-width:0;max-width:100%;overflow:hidden}
 #notesModal input,
 #notesModal select,
 #notesModal textarea{
+    width:100%!important;
     max-width:100%;
     min-width:0;
 }
 #noteReminderAt{
+    -webkit-appearance:none;
+    appearance:none;
+    box-sizing:border-box;
     display:block;
-    width:100%!important;
-    max-width:100%!important;
+    width:calc(100vw - 36px)!important;
+    max-width:calc(100vw - 36px)!important;
     min-width:0!important;
 }
 #notesModal .modal-header h2{font-size:22px}
