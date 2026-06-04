@@ -367,6 +367,62 @@ body.light-theme .reminder-alert-item strong{color:#0f172a}
 body.light-theme .note-card{background:#fff;border-color:#d7e8f5}
 body.light-theme .note-card-title,body.light-theme .note-card-text{color:#0f172a}
 
+@media(max-width:600px){
+body{min-height:100vh}
+#dashboard{min-height:100vh}
+#dashboard .main,
+#dashboard .sidebar-logo,
+#dashboard .sidebar-reminders,
+#dashboard .top-tools{display:none!important}
+#dashboard .sidebar{
+    width:100%;
+    min-height:100vh;
+    position:relative;
+    padding:24px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:#0f172a;
+}
+#dashboard .menu{
+    width:100%;
+    max-width:320px;
+    flex:none;
+}
+#dashboard .menu button{display:none}
+#dashboard .menu .mobile-notes-button{
+    display:block;
+    width:100%;
+    min-height:58px;
+    margin:0;
+    padding:17px 18px;
+    border-radius:14px;
+    background:#2563eb;
+    color:white;
+    text-align:center;
+    font-size:18px;
+    font-weight:800;
+    box-shadow:0 16px 35px rgba(37,99,235,.35);
+}
+body.light-theme #dashboard .sidebar{background:#eaf7ff}
+body.light-theme #dashboard .menu .mobile-notes-button{
+    background:#2563eb;
+    color:white;
+}
+#notesModal{align-items:stretch}
+#notesModal .modal-box{
+    width:100%!important;
+    max-width:100%!important;
+    min-height:100vh;
+    max-height:100vh;
+    border-radius:0;
+    padding:18px;
+}
+#notesModal .invoice-grid,
+#notesModal .action-row{grid-template-columns:1fr!important}
+#notesModal .modal-header h2{font-size:22px}
+}
+
 </style>
 </head>
 
@@ -403,7 +459,7 @@ body.light-theme .note-card-title,body.light-theme .note-card-text{color:#0f172a
             <button onclick="openReviewModal()">Pregled</button>
             <button onclick="openReceiptModal()">Sačuvaj račun</button>
             <button onclick="openDocumentsModal()">Dokumenti</button>
-            <button onclick="openNotesModal()">Notes / Podsetnik</button>
+            <button class="mobile-notes-button" onclick="openNotesModal()">Notes / Podsetnik</button>
             <button onclick="openObracunRModal()">Obračun - R</button>
             <button onclick="openObracunKModal()">Obračun - K</button>
             <button style="background:#dc2626;color:white;font-weight:bold;" onclick="openInvoiceModal()">Faktura</button>
