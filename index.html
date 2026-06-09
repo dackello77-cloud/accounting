@@ -585,7 +585,7 @@ body.light-theme #dashboard .menu .mobile-notes-button{
                 <div class="input-group"><label>Naziv</label><input type="text" id="transactionName" list="entityList" oninput="fillEntityData()"><datalist id="entityList"></datalist></div>
                 <div class="input-group"><label>Adresa</label><input type="text" id="transactionAddress" readonly></div>
                 <div class="input-group"><label>Žiro račun</label><input type="text" id="transactionZiro" readonly></div>
-                <div class="input-group"><label>Iznos</label><input type="number" id="transactionAmount" step="0.01"></div>
+                <div class="input-group"><label>Iznos</label><input type="text" id="transactionAmount" inputmode="decimal" autocomplete="off" placeholder="0,00" oninput="formatTransactionAmountInput(this)" onfocus="prepareTransactionAmountInput(this)" onblur="finalizeTransactionAmountInput(this)"></div>
                 <div class="input-group"><label>Broj fakture</label><input type="text" id="transactionInvoice"></div>
                 <div class="input-group"><label>Notes</label><textarea id="transactionNotes"></textarea></div>
                 <button class="save-btn" id="transactionSaveBtn" onclick="saveTransaction()">SAVE</button>
@@ -1461,13 +1461,14 @@ async function saveTransaction(){
     const ime = document.getElementById("transactionName").value.trim();
     const adresa = document.getElementById("transactionAddress").value.trim();
     const ziro = document.getElementById("transactionZiro").value.trim();
-    const iznos = document.getElementById("transactionAmount").value;
+    const iznos = parseTransactionAmount(document.getElementById("transactionAmount").value);
     const brojFakture = document.getElementById("transactionInvoice").value.trim();
     const notes = document.getElementById("transactionNotes").value.trim();
 
     if(tip === ""){alert("Izaberite tip");return;}
     if(ime === ""){alert("Izaberite naziv");return;}
     if(iznos === ""){alert("Unesite iznos");return;}
+    if(!Number.isFinite(Number(iznos))){alert("Unesite ispravan iznos");return;}
 
     document.getElementById("transactionDocStatus").innerText = "Čuvam transakciju...";
 
@@ -2344,6 +2345,36 @@ async function saveReceipt(){
     reader.readAsDataURL(file);
 }
 
+function parseTransactionAmount(value){
+    const normalized = String(value || "").replace(/\s/g, "").replace(/\./g, "").replace(",", ".");
+    if(normalized === "" || normalized === ".") return "";
+    return normalized;
+}
+function formatTransactionAmountInput(input){
+    const clean = input.value.replace(/[^\d,]/g, "");
+    if(clean === ""){
+        input.value = "";
+        return;
+    }
+    const commaIndex = clean.indexOf(",");
+    const integerDigits = (commaIndex === -1 ? clean : clean.slice(0, commaIndex)).replace(/^0+(?=\d)/, "");
+    const decimals = commaIndex === -1 ? "" : clean.slice(commaIndex + 1).replace(/,/g, "").slice(0, 2);
+    const groupedInteger = (integerDigits || "0").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    input.value = groupedInteger + (commaIndex === -1 ? "" : "," + decimals);
+}
+function prepareTransactionAmountInput(input){
+    if(/,00$/.test(input.value)) input.value = input.value.slice(0, -3);
+    requestAnimationFrame(() => input.setSelectionRange(input.value.length, input.value.length));
+}
+function finalizeTransactionAmountInput(input){
+    const parsedAmount = parseTransactionAmount(input.value);
+    if(parsedAmount === ""){
+        input.value = "";
+        return;
+    }
+    const amount = Number(parsedAmount);
+    input.value = Number.isFinite(amount) ? formatMoney(amount) : "";
+}
 function toInputDate(date){const y = date.getFullYear();const m = String(date.getMonth() + 1).padStart(2, "0");const d = String(date.getDate()).padStart(2, "0");return `${y}-${m}-${d}`;}
 function formatMoney(num){return Number(num || 0).toLocaleString("sr-RS", {minimumFractionDigits: 2,maximumFractionDigits: 2});}
 function formatSignedAmount(tip, iznos){
