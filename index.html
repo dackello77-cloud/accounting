@@ -24,7 +24,7 @@ button{cursor:pointer}
 .menu button{width:100%;margin-bottom:12px;padding:14px;border:none;border-radius:10px;background:#1e293b;color:white;text-align:left}
 .menu button:hover{background:#2563eb}
 .main{margin-left:250px;padding:25px;position:relative}
-.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin:25px 0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;margin:25px 0}
 .card{background:#1e293b;padding:25px;border-radius:16px;border:1px solid #334155}
 .card-title{color:#94a3b8;margin-bottom:12px}
 .card-value{font-size:30px;font-weight:bold}
@@ -179,6 +179,22 @@ body.light-theme .document-folder-btn span{
 .action-row{grid-template-columns:1fr}
 .radio-group{flex-wrap:wrap}
 }
+
+.dashboard-summary{background:#1e293b;border:1px solid #334155;border-radius:18px;padding:22px;margin-bottom:20px}
+.summary-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
+.summary-header h2{margin:0;font-size:20px}
+.summary-header p{color:#94a3b8;max-width:580px;font-size:14px;line-height:1.5}
+.summary-grid{display:grid;gap:14px}
+.summary-item{display:grid;grid-template-columns:120px 1fr 100px;gap:12px;align-items:center}
+.summary-item div{font-size:14px;color:#e2e8f0}
+.chart-bar{background:#0f172a;border:1px solid #334155;border-radius:999px;height:14px;overflow:hidden}
+.chart-bar span{display:block;height:100%;width:0%;border-radius:999px;transition:width .4s ease}
+#yearChartIncome{background:linear-gradient(90deg,#22c55e,#4ade80)}
+#yearChartTax{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+#yearChartClient{background:linear-gradient(90deg,#38bdf8,#60a5fa)}
+#yearChartStaff{background:linear-gradient(90deg,#ef4444,#f87171)}
+.chart-value{font-weight:800;color:#fff;text-align:right}
+@media(max-width:600px){.summary-item{grid-template-columns:1fr}}
 
 @media(max-width:600px){
 .modal-box{width:100%;padding:20px}
@@ -519,6 +535,43 @@ body.light-theme #dashboard .menu .mobile-notes-button{
             <div class="card">
                 <div class="card-title">Ukupan izlaz</div>
                 <div class="card-value red" id="izlaz">0 RSD</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Ukupni prihodi u godini</div>
+                <div class="card-value green" id="godisnjiUlaz">0 RSD</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Ukupni rashodi u godini</div>
+                <div class="card-value red" id="godisnjiIzlaz">0 RSD</div>
+            </div>
+        </div>
+
+        <div class="dashboard-summary">
+            <div class="summary-header">
+                <h2>Godišnji prikaz</h2>
+                <p>Pregled prihoda i rashoda po ključnim kategorijama.</p>
+            </div>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div>Prihodi</div>
+                    <div class="chart-bar"><span id="yearChartIncome"></span></div>
+                    <div class="chart-value" id="yearChartIncomeVal">0 RSD</div>
+                </div>
+                <div class="summary-item">
+                    <div>Porezi</div>
+                    <div class="chart-bar"><span id="yearChartTax"></span></div>
+                    <div class="chart-value" id="yearChartTaxVal">0 RSD</div>
+                </div>
+                <div class="summary-item">
+                    <div>Klijenti</div>
+                    <div class="chart-bar"><span id="yearChartClient"></span></div>
+                    <div class="chart-value" id="yearChartClientVal">0 RSD</div>
+                </div>
+                <div class="summary-item">
+                    <div>Zaposleni</div>
+                    <div class="chart-bar"><span id="yearChartStaff"></span></div>
+                    <div class="chart-value" id="yearChartStaffVal">0 RSD</div>
+                </div>
             </div>
         </div>
 
@@ -1375,6 +1428,48 @@ async function loadDashboard(){
         document.getElementById("stanje").innerText = formatMoney(data.stanje) + " RSD";
         document.getElementById("ulaz").innerText = formatMoney(data.ulaz) + " RSD";
         document.getElementById("izlaz").innerText = formatMoney(data.izlaz) + " RSD";
+
+        const now = new Date();
+        const year = now.getFullYear();
+        const yearStart = `${year}-01-01`;
+        const yearEnd = `${year}-12-31`;
+
+        let godišnjiUlaz = 0;
+        let godisnjiPorezi = 0;
+        let godisnjiKlijenti = 0;
+        let godisnjiZaposleni = 0;
+
+        try{
+            const yearRes = await fetch(API_URL + "?action=getTransactions&from=" + encodeURIComponent(yearStart) + "&to=" + encodeURIComponent(yearEnd));
+            const yearData = await yearRes.json();
+            if(yearData.success && Array.isArray(yearData.data)){
+                const valid = yearData.data.filter(t => String(t.status || "").toUpperCase() !== "STORNO");
+                valid.forEach(t => {
+                    const amount = parseMoneyNumber(t.iznos);
+                    if(t.tip === "Ulaz"){
+                        godišnjiUlaz += amount;
+                    }
+                    if(t.tip === "Porezi"){
+                        godisnjiPorezi += amount;
+                    }
+                    if(t.tip === "Klijenti"){
+                        godisnjiKlijenti += amount;
+                    }
+                    if(t.tip === "Zaposleni"){
+                        godisnjiZaposleni += amount;
+                    }
+                });
+            }
+        }catch(yearError){
+            console.log("Greška pri učitavanju godišnjih transakcija", yearError);
+        }
+
+        const ukupniGodisnjiRashod = godisnjiPorezi + godisnjiKlijenti + godisnjiZaposleni;
+        document.getElementById("godisnjiUlaz").innerText = formatMoney(godišnjiUlaz) + " RSD";
+        document.getElementById("godisnjiIzlaz").innerText = formatMoney(ukupniGodisnjiRashod) + " RSD";
+
+        updateYearChart(godišnjiUlaz, godisnjiPorezi, godisnjiKlijenti, godisnjiZaposleni);
+
         let html = "";
         if(!data.poslednje || data.poslednje.length === 0){html = `<tr><td colspan="5">Nema transakcija</td></tr>`;}
         else{
@@ -1387,6 +1482,31 @@ async function loadDashboard(){
         document.getElementById("transactionsTable").innerHTML = html;
         loadReminderAlerts();
     }catch(error){alert("Greška pri učitavanju podataka");console.log(error);}
+}
+
+function parseMoneyNumber(value){
+    if(typeof value === "number") return value;
+    const normalized = String(value || "").replace(/\s/g, "").replace(/\./g, "").replace(",", ".").replace(/[^0-9.-]/g, "");
+    const num = parseFloat(normalized);
+    return Number.isFinite(num) ? num : 0;
+}
+
+function updateYearChart(income, tax, clients, staff){
+    const max = Math.max(income, tax, clients, staff, 1);
+    const updateBar = (id, value) => {
+        const el = document.getElementById(id);
+        if(el){
+            el.style.width = `${Math.round((value / max) * 100)}%`;
+        }
+    };
+    document.getElementById("yearChartIncomeVal").innerText = formatMoney(income) + " RSD";
+    document.getElementById("yearChartTaxVal").innerText = formatMoney(tax) + " RSD";
+    document.getElementById("yearChartClientVal").innerText = formatMoney(clients) + " RSD";
+    document.getElementById("yearChartStaffVal").innerText = formatMoney(staff) + " RSD";
+    updateBar("yearChartIncome", income);
+    updateBar("yearChartTax", tax);
+    updateBar("yearChartClient", clients);
+    updateBar("yearChartStaff", staff);
 }
 
 function openAddModal(){resetAddModal();document.getElementById("addModal").style.display = "flex";}
@@ -2320,8 +2440,9 @@ async function saveReceipt(){
             const data = await res.json();
 
             if(data.success){
+                fileInput.value = "";
                 message.style.color = "#22c55e";
-                message.innerText = "Račun je uspešno sačuvan: " + data.fileName;
+                message.innerText = "Račun je uspešno sačuvan: " + data.fileName + ". Lokalna selekcija fajla je obrisana iz aplikacije.";
 
                 setTimeout(() => {
                     closeReceiptModal();
