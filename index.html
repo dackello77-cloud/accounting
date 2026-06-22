@@ -109,6 +109,9 @@ th{background:#0f172a;color:#94a3b8}
 .receipt-selected{font-size:13px;color:#cbd5e1;margin-top:10px;word-break:break-word;min-height:18px}
 .receipt-link{display:inline-block;color:#38bdf8;margin-top:8px;font-size:13px;text-decoration:none}
 .receipt-link:hover{text-decoration:underline}
+.receipt-picker-btn{margin-top:8px;background:#0ea5e9}
+.receipt-file-name{min-height:20px;margin-top:8px;color:#cbd5e1;font-size:13px}
+body.light-theme .receipt-file-name{color:#475569}
 
 
 .documents-grid{
@@ -230,6 +233,17 @@ body.light-theme .receipt-list{background:#ffffff;border-color:#d7e8f5;color:#0f
 body.light-theme .receipt-item{color:#0f172a;border-bottom-color:#d7e8f5}
 body.light-theme .receipt-item:hover,
 body.light-theme .receipt-item.active{background:#dff4ff}
+body.light-theme .dashboard-summary{
+    background:rgba(255,255,255,.78);
+    color:#0f172a;
+    border-color:#d7e8f5;
+    box-shadow:0 12px 40px rgba(15,23,42,.08);
+    backdrop-filter:blur(12px)
+}
+body.light-theme .summary-header p{color:#475569}
+body.light-theme .summary-item div{color:#334155}
+body.light-theme .chart-bar{background:#e2edf5;border-color:#cbd5e1}
+body.light-theme .chart-value{color:#0f172a}
 
 
 
@@ -928,7 +942,11 @@ body.light-theme #dashboard .menu .mobile-notes-button{
 
         <div class="input-group">
             <label>Izaberite račun iz računara</label>
-            <input type="file" id="receiptFile" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx">
+            <input type="file" id="receiptFile" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" onchange="handleReceiptFileFallback()">
+            <button type="button" id="receiptPickerBtn" class="save-btn receipt-picker-btn" onclick="chooseReceiptFile()" style="display:none;">
+                IZABERI FAJL
+            </button>
+            <div id="receiptFileName" class="receipt-file-name"></div>
         </div>
 
         <div class="input-group">
@@ -2392,8 +2410,69 @@ function openDriveFolder(url){
 
 /* RECEIPTS */
 
-function openReceiptModal(){
+let selectedReceiptLocalFile = null;
+let selectedReceiptFileHandle = null;
+let receiptDeletePermissionGranted = false;
+
+function supportsDeletableFilePicker(){
+    return window.isSecureContext && typeof window.showOpenFilePicker === "function";
+}
+
+function resetReceiptFileSelection(){
     document.getElementById("receiptFile").value = "";
+    document.getElementById("receiptFileName").innerText = "";
+    selectedReceiptLocalFile = null;
+    selectedReceiptFileHandle = null;
+    receiptDeletePermissionGranted = false;
+}
+
+function configureReceiptFilePicker(){
+    const supported = supportsDeletableFilePicker();
+    document.getElementById("receiptFile").style.display = supported ? "none" : "block";
+    document.getElementById("receiptPickerBtn").style.display = supported ? "block" : "none";
+}
+
+async function chooseReceiptFile(){
+    const message = document.getElementById("receiptMessage");
+
+    try{
+        const handles = await window.showOpenFilePicker({multiple:false});
+        const handle = handles[0];
+        const file = await handle.getFile();
+        let permission = "denied";
+
+        if(typeof handle.requestPermission === "function"){
+            permission = await handle.requestPermission({mode:"readwrite"});
+        }
+
+        selectedReceiptFileHandle = handle;
+        selectedReceiptLocalFile = file;
+        receiptDeletePermissionGranted = permission === "granted";
+        document.getElementById("receiptFileName").innerText = file.name + (receiptDeletePermissionGranted
+            ? " - biće obrisan sa računara posle uspešnog čuvanja"
+            : " - nema dozvole za automatsko brisanje");
+        message.innerText = "";
+    }catch(error){
+        if(error && error.name === "AbortError") return;
+        message.style.color = "#ef4444";
+        message.innerText = "Fajl nije moguće otvoriti.";
+        console.log(error);
+    }
+}
+
+function handleReceiptFileFallback(){
+    const file = document.getElementById("receiptFile").files[0];
+    selectedReceiptLocalFile = file || null;
+    selectedReceiptFileHandle = null;
+    receiptDeletePermissionGranted = false;
+    document.getElementById("receiptFileName").innerText = file
+        ? file.name + " - pregledač ne dozvoljava automatsko brisanje originala"
+        : "";
+}
+
+function openReceiptModal(){
+    resetReceiptFileSelection();
+    configureReceiptFilePicker();
     document.getElementById("receiptNote").value = "";
     document.getElementById("receiptMessage").innerText = "";
     document.getElementById("receiptModal").style.display = "flex";
@@ -2407,7 +2486,7 @@ async function saveReceipt(){
     const fileInput = document.getElementById("receiptFile");
     const note = document.getElementById("receiptNote").value.trim();
     const message = document.getElementById("receiptMessage");
-    const file = fileInput.files[0];
+    const file = selectedReceiptLocalFile || fileInput.files[0];
 
     if(!file){
         message.style.color = "#ef4444";
@@ -2440,13 +2519,25 @@ async function saveReceipt(){
             const data = await res.json();
 
             if(data.success){
-                fileInput.value = "";
-                message.style.color = "#22c55e";
-                message.innerText = "Račun je uspešno sačuvan: " + data.fileName + ". Lokalna selekcija fajla je obrisana iz aplikacije.";
+                let localFileMessage = " Originalni fajl je ostao na računaru.";
+
+                if(selectedReceiptFileHandle && receiptDeletePermissionGranted && typeof selectedReceiptFileHandle.remove === "function"){
+                    try{
+                        await selectedReceiptFileHandle.remove();
+                        localFileMessage = " Originalni fajl je obrisan sa računara.";
+                    }catch(deleteError){
+                        localFileMessage = " Račun je sačuvan, ali originalni fajl nije moguće obrisati sa računara.";
+                        console.log(deleteError);
+                    }
+                }
+
+                resetReceiptFileSelection();
+                message.style.color = localFileMessage.includes("je obrisan") ? "#22c55e" : "#f59e0b";
+                message.innerText = "Račun je uspešno sačuvan: " + data.fileName + "." + localFileMessage;
 
                 setTimeout(() => {
                     closeReceiptModal();
-                }, 1200);
+                }, 2200);
             }else{
                 message.style.color = "#ef4444";
                 message.innerText = data.message || "Greška pri čuvanju računa.";
