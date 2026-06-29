@@ -2657,7 +2657,7 @@ function startClock(){
         const el = document.getElementById("currentTimeBox");
         if(el){
             const now = new Date();
-            el.innerText = now.toLocaleTimeString("sr-RS", {hour:"2-digit", minute:"2-digit"});
+            el.innerText = now.toLocaleTimeString("sr-RS", {hour:"2-digit", minute:"2-digit", timeZone:"Europe/Belgrade"});
         }
     }
     tick();
