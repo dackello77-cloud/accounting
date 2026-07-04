@@ -2890,6 +2890,26 @@ async function loadLatestObracunSetup(type){
     }
 }
 
+const obracunSetupSaveTimers = {};
+
+function saveObracunSetupToApi(type, setup){
+    const cleanType = String(type || "").toUpperCase();
+    if(!cleanType || !setup){return;}
+
+    clearTimeout(obracunSetupSaveTimers[cleanType]);
+    obracunSetupSaveTimers[cleanType] = setTimeout(async () => {
+        try{
+            const body = new URLSearchParams();
+            body.append("action", "saveObracunSetup");
+            body.append("type", cleanType);
+            body.append("setup", JSON.stringify(setup));
+            await fetch(API_URL, {method:"POST", body});
+        }catch(error){
+            console.log("Obračun setup autosave skipped", error);
+        }
+    }, 700);
+}
+
 async function openObracunRModal(){
     loadObracunRLocalState();
     initObracunRDefaults();
@@ -2992,6 +3012,7 @@ function renderObracunR(updateRows = true){
     if(preview){preview.innerHTML = buildObracunRInnerHtml();}
 
     saveObracunRState();
+    saveObracunSetupToApi("R", getObracunRState());
 }
 
 async function loadObracunEmployees(){
@@ -3372,6 +3393,7 @@ function renderObracunK(){
     document.getElementById("obracunKRows").innerHTML = body;
     document.getElementById("obracunKPreview").innerHTML = buildObracunKPreviewHtml();
     saveObracunKDraft();
+    saveObracunSetupToApi("K", getObracunKState());
 }
 
 function checkMark(value){
