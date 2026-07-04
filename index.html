@@ -2799,60 +2799,106 @@ let obracunEmails = [];
 let selectedObracunEmails = [];
 let obracunStateLoaded = false;
 
-function loadObracunRState(){
-    if(obracunStateLoaded){return;}
+function getObracunRState(){
+    return {
+        data: obracunData,
+        month: document.getElementById("obracunMonth") ? document.getElementById("obracunMonth").value : "",
+        year: document.getElementById("obracunYear") ? document.getElementById("obracunYear").value : "",
+        rate: document.getElementById("obracunRate") ? document.getElementById("obracunRate").value : "",
+        defaultSalary: document.getElementById("defaultSalaryRsd") ? document.getElementById("defaultSalaryRsd").value : ""
+    };
+}
+
+function applyObracunRState(saved){
+    if(!saved){return false;}
+
+    if(saved.data){
+        obracunData = {
+            tax: Array.isArray(saved.data.tax) ? saved.data.tax : [],
+            cost: Array.isArray(saved.data.cost) ? saved.data.cost : [],
+            salary: Array.isArray(saved.data.salary) ? saved.data.salary : []
+        };
+    }
+
+    if(saved.month && document.getElementById("obracunMonth")){
+        document.getElementById("obracunMonth").value = saved.month;
+    }
+
+    if(saved.year && document.getElementById("obracunYear")){
+        document.getElementById("obracunYear").value = saved.year;
+    }
+
+    if(saved.rate !== undefined && document.getElementById("obracunRate")){
+        document.getElementById("obracunRate").value = saved.rate;
+    }
+
+    if(saved.defaultSalary !== undefined && document.getElementById("defaultSalaryRsd")){
+        document.getElementById("defaultSalaryRsd").value = saved.defaultSalary;
+    }
+
+    return true;
+}
+
+function loadObracunRLocalState(){
+    if(obracunStateLoaded){return false;}
     obracunStateLoaded = true;
 
     try{
         const raw = localStorage.getItem("obracunRState");
-        if(!raw){return;}
-
-        const saved = JSON.parse(raw);
-
-        if(saved && saved.data){
-            obracunData = saved.data;
-        }
-
-        if(saved.month && document.getElementById("obracunMonth")){
-            document.getElementById("obracunMonth").value = saved.month;
-        }
-
-        if(saved.year && document.getElementById("obracunYear")){
-            document.getElementById("obracunYear").value = saved.year;
-        }
-
-        if(saved.rate !== undefined && document.getElementById("obracunRate")){
-            document.getElementById("obracunRate").value = saved.rate;
-        }
-
-        if(saved.defaultSalary !== undefined && document.getElementById("defaultSalaryRsd")){
-            document.getElementById("defaultSalaryRsd").value = saved.defaultSalary;
-        }
+        if(!raw){return false;}
+        return applyObracunRState(JSON.parse(raw));
     }catch(error){
         console.log("Obračun R state load error", error);
+        return false;
     }
 }
 
 function saveObracunRState(){
     try{
-        const state = {
-            data: obracunData,
-            month: document.getElementById("obracunMonth") ? document.getElementById("obracunMonth").value : "",
-            year: document.getElementById("obracunYear") ? document.getElementById("obracunYear").value : "",
-            rate: document.getElementById("obracunRate") ? document.getElementById("obracunRate").value : "",
-            defaultSalary: document.getElementById("defaultSalaryRsd") ? document.getElementById("defaultSalaryRsd").value : ""
-        };
-
-        localStorage.setItem("obracunRState", JSON.stringify(state));
+        localStorage.setItem("obracunRState", JSON.stringify(getObracunRState()));
     }catch(error){
         console.log("Obračun R state save error", error);
     }
 }
 
-function openObracunRModal(){
-    loadObracunRState();
+function normalizeLatestObracunState(response, type){
+    if(!response || response.success === false){return null;}
+    const payload = response.data || response.state || response.setup || response;
+    let parsed = typeof payload === "string" ? JSON.parse(payload) : payload;
+    if(!parsed){return null;}
+    if(parsed.setup){
+        parsed = typeof parsed.setup === "string" ? JSON.parse(parsed.setup) : parsed.setup;
+    }
+    if(parsed.state){
+        parsed = typeof parsed.state === "string" ? JSON.parse(parsed.state) : parsed.state;
+    }
+    if(type === "R" && parsed.data){return parsed;}
+    if(type === "R" && (parsed.tax || parsed.cost || parsed.salary)){return {data:parsed};}
+    if(type === "K" && Array.isArray(parsed.rows)){return parsed;}
+    if(type === "K" && parsed.data && Array.isArray(parsed.data.rows)){return parsed.data;}
+    return null;
+}
+
+async function loadLatestObracunSetup(type){
+    try{
+        const res = await fetch(API_URL + "?action=getLatestObracunSetup&type=" + encodeURIComponent(type) + "&_=" + Date.now());
+        const data = await res.json();
+        return normalizeLatestObracunState(data, type);
+    }catch(error){
+        console.log("Latest obračun setup load skipped", error);
+        return null;
+    }
+}
+
+async function openObracunRModal(){
+    loadObracunRLocalState();
     initObracunRDefaults();
     document.getElementById("obracunRModal").style.display = "flex";
+    const latestSetup = await loadLatestObracunSetup("R");
+    if(latestSetup){
+        applyObracunRState(latestSetup);
+        saveObracunRState();
+    }
     if(obracunData.tax.length === 0){addObracunRow('tax');}
     if(obracunData.cost.length === 0){addObracunRow('cost');}
     if(obracunData.salary.length === 0){loadObracunEmployees();}
@@ -3070,6 +3116,7 @@ async function saveObracunRToDrive(){
     body.append("year", document.getElementById("obracunYear").value);
     body.append("kurs", document.getElementById("obracunRate").value || "");
     body.append("data", JSON.stringify(obracunData));
+    body.append("setup", JSON.stringify(getObracunRState()));
     const res = await fetch(API_URL, {method:"POST", body});
     return await res.json();
 }
@@ -3150,6 +3197,7 @@ async function sendObracunREmail(){
     body.append("year", document.getElementById("obracunYear").value);
     body.append("kurs", document.getElementById("obracunRate").value || "");
     body.append("data", JSON.stringify(obracunData));
+    body.append("setup", JSON.stringify(getObracunRState()));
     body.append("message", document.getElementById("obracunEmailMessage").value || "");
     const res = await fetch(API_URL, {method:"POST", body});
     const data = await res.json();
@@ -3206,25 +3254,29 @@ function saveObracunKDraft(){
     try{localStorage.setItem("obracunKDraft", JSON.stringify(getObracunKState()));}catch(e){}
 }
 
+function applyObracunKState(state){
+    if(!state){return false;}
+    if(state.month) document.getElementById("obracunKMonth").value = state.month;
+    if(state.year) document.getElementById("obracunKYear").value = state.year;
+    document.getElementById("obracunKExtraEnabled").checked = !!state.extraEnabled;
+    document.getElementById("obracunKExtraTitle").value = state.extraTitle || "";
+    const type = state.extraType || "text";
+    const typeEl = document.querySelector(`input[name="obracunKExtraType"][value="${type}"]`);
+    if(typeEl) typeEl.checked = true;
+    document.getElementById("obracunKNotes").value = state.notes || "";
+    obracunKRows = Array.isArray(state.rows) ? state.rows : [];
+    return obracunKRows.length > 0;
+}
+
 function restoreObracunKDraft(){
     try{
         const raw = localStorage.getItem("obracunKDraft");
         if(!raw) return false;
-        const state = JSON.parse(raw);
-        if(state.month) document.getElementById("obracunKMonth").value = state.month;
-        if(state.year) document.getElementById("obracunKYear").value = state.year;
-        document.getElementById("obracunKExtraEnabled").checked = !!state.extraEnabled;
-        document.getElementById("obracunKExtraTitle").value = state.extraTitle || "";
-        const type = state.extraType || "text";
-        const typeEl = document.querySelector(`input[name="obracunKExtraType"][value="${type}"]`);
-        if(typeEl) typeEl.checked = true;
-        document.getElementById("obracunKNotes").value = state.notes || "";
-        obracunKRows = Array.isArray(state.rows) ? state.rows : [];
-        return obracunKRows.length > 0;
+        return applyObracunKState(JSON.parse(raw));
     }catch(e){return false;}
 }
 
-function openObracunKModal(){
+async function openObracunKModal(){
     document.getElementById("obracunKModal").style.display = "flex";
     const now = new Date();
     if(!obracunKLoaded){
@@ -3235,8 +3287,19 @@ function openObracunKModal(){
             document.getElementById("obracunKMonth").value = months[now.getMonth()];
         }
         obracunKLoaded = true;
-        if(!hasDraft){loadObracunKEmployees(false);} else {renderObracunK();}
+        const latestSetup = await loadLatestObracunSetup("K");
+        const hasLatestSetup = applyObracunKState(latestSetup);
+        if(hasLatestSetup){
+            saveObracunKDraft();
+            renderObracunK();
+        }else if(!hasDraft){
+            loadObracunKEmployees(false);
+        }else{
+            renderObracunK();
+        }
     }else{
+        const latestSetup = await loadLatestObracunSetup("K");
+        if(applyObracunKState(latestSetup)){saveObracunKDraft();}
         renderObracunK();
     }
 }
@@ -3447,6 +3510,7 @@ async function saveObracunKPdf(){
     body.append("month", state.month);
     body.append("year", state.year);
     body.append("data", JSON.stringify(state));
+    body.append("setup", JSON.stringify(state));
     const res = await fetch(API_URL, {method:"POST", body});
     return await res.json();
 }
@@ -3544,6 +3608,7 @@ async function sendObracunKEmail(){
     body.append("month", state.month);
     body.append("year", state.year);
     body.append("data", JSON.stringify(state));
+    body.append("setup", JSON.stringify(state));
     body.append("message", document.getElementById("obracunKEmailMessage").value || "");
     body.append("emailHtml", buildObracunKEmailHtml("OBRAČUN - K - " + state.month + " " + state.year + ".pdf"));
     try{
