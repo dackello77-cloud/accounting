@@ -18,6 +18,7 @@ body{background:#0f172a;color:white}
 .input-group input,.input-group select,textarea{width:100%;padding:14px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:white}
 button{cursor:pointer}
 .login-btn,.save-btn{width:100%;padding:14px;border:none;border-radius:10px;background:#2563eb;color:white;font-weight:bold}
+button:disabled,.save-btn:disabled{cursor:not-allowed;opacity:.65}
 #dashboard{display:none;min-height:100vh}
 .sidebar{width:250px;background:#111827;min-height:100vh;position:fixed;left:0;top:0;padding:25px}
 .sidebar-logo{width:120px;margin-bottom:30px}
@@ -659,7 +660,7 @@ body.light-theme #dashboard .menu .mobile-notes-button{
                 <div class="input-group"><label>Naziv</label><input type="text" id="transactionName" list="entityList" oninput="fillEntityData()"><datalist id="entityList"></datalist></div>
                 <div class="input-group"><label>Adresa</label><input type="text" id="transactionAddress" readonly></div>
                 <div class="input-group"><label>Žiro račun</label><input type="text" id="transactionZiro" readonly></div>
-                <div class="input-group"><label>Iznos</label><input type="text" id="transactionAmount" inputmode="decimal" autocomplete="off" placeholder="0,00" oninput="formatTransactionAmountInput(this)" onfocus="prepareTransactionAmountInput(this)" onblur="finalizeTransactionAmountInput(this)"></div>
+                <div class="input-group"><label>Iznos</label><input type="text" id="transactionAmount" inputmode="decimal" autocomplete="off" placeholder="0,00" onkeydown="handleTransactionAmountKeydown(event,this)" oninput="formatTransactionAmountInput(this)" onfocus="prepareTransactionAmountInput(this)" onblur="finalizeTransactionAmountInput(this)"></div>
                 <div class="input-group"><label>Broj fakture</label><input type="text" id="transactionInvoice"></div>
                 <div class="input-group"><label>Notes</label><textarea id="transactionNotes"></textarea></div>
                 <button class="save-btn" id="transactionSaveBtn" onclick="saveTransaction()">SAVE</button>
@@ -1421,6 +1422,7 @@ let addEntitiesData = [];
 let lastTransactionData = null;
 let selectedReceiptData = null;
 let transactionReceiptFiles = [];
+let isSavingTransaction = false;
 let logoDataUrl = "";
 
 function getCheckedValue(name){
@@ -1616,6 +1618,7 @@ async function saveEntity(){
 function openTransactionModal(){resetTransactionModal();document.getElementById("transactionModal").style.display = "flex";}
 function closeTransactionModal(){resetTransactionModal();document.getElementById("transactionModal").style.display = "none";}
 function resetTransactionModal(){
+    isSavingTransaction = false;
     resetRadioGroup("transactionTip");
     document.getElementById("transactionName").value = "";
     document.getElementById("transactionAddress").value = "";
@@ -1627,6 +1630,8 @@ function resetTransactionModal(){
     document.getElementById("transactionDocActions").style.display = "none";
     document.getElementById("transactionDocStatus").innerText = "";
     document.getElementById("transactionSaveBtn").style.display = "block";
+    document.getElementById("transactionSaveBtn").disabled = false;
+    document.getElementById("transactionSaveBtn").innerText = "SAVE";
     resetTransactionReceiptPanel();
     entitiesData = [];
 }
@@ -1661,6 +1666,7 @@ function fillEntityData(){
 }
 
 async function saveTransaction(){
+    if(isSavingTransaction){return;}
     const tip = getCheckedValue("transactionTip");
     const ime = document.getElementById("transactionName").value.trim();
     const adresa = document.getElementById("transactionAddress").value.trim();
@@ -1674,6 +1680,10 @@ async function saveTransaction(){
     if(iznos === ""){alert("Unesite iznos");return;}
     if(!Number.isFinite(Number(iznos))){alert("Unesite ispravan iznos");return;}
 
+    isSavingTransaction = true;
+    const saveBtn = document.getElementById("transactionSaveBtn");
+    saveBtn.disabled = true;
+    saveBtn.innerText = "ČUVAM...";
     document.getElementById("transactionDocStatus").innerText = "Čuvam transakciju...";
 
     const url = API_URL + "?action=addTransaction"
@@ -1692,11 +1702,17 @@ async function saveTransaction(){
     }catch(error){
         document.getElementById("transactionDocStatus").innerText = "Greška pri upisu u Google Sheet.";
         console.log(error);
+        isSavingTransaction = false;
+        saveBtn.disabled = false;
+        saveBtn.innerText = "SAVE";
         return;
     }
 
     if(!data.success){
         document.getElementById("transactionDocStatus").innerText = data.message || "Greška pri čuvanju.";
+        isSavingTransaction = false;
+        saveBtn.disabled = false;
+        saveBtn.innerText = "SAVE";
         return;
     }
 
@@ -1713,7 +1729,8 @@ async function saveTransaction(){
         }
     }
 
-    document.getElementById("transactionSaveBtn").style.display = "none";
+    saveBtn.style.display = "none";
+    saveBtn.innerText = "SAVE";
     document.getElementById("transactionDocActions").style.display = "block";
     document.getElementById("transactionDocStatus").innerText = "Transakcija je sačuvana. Izaberite: SAVE PDF, PRINT ili SAVE PDF & PRINT.";
 
@@ -2628,8 +2645,26 @@ function parseTransactionAmount(value){
     if(normalized === "" || normalized === ".") return "";
     return normalized;
 }
+function handleTransactionAmountKeydown(event, input){
+    if(event.key !== "." && event.code !== "NumpadDecimal") return;
+    event.preventDefault();
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    const selectedValue = input.value.slice(start, end);
+    if(input.value.includes(",") && !selectedValue.includes(",")) return;
+    input.setRangeText(",", start, end, "end");
+    formatTransactionAmountInput(input);
+}
 function formatTransactionAmountInput(input){
-    const clean = input.value.replace(/[^\d,]/g, "");
+    let value = input.value;
+    if(value.includes(".") && !value.includes(",")){
+        const lastDotIndex = value.lastIndexOf(".");
+        const decimalDigits = value.slice(lastDotIndex + 1).replace(/\D/g, "");
+        if(decimalDigits.length <= 2){
+            value = value.slice(0, lastDotIndex) + "," + value.slice(lastDotIndex + 1);
+        }
+    }
+    const clean = value.replace(/[^\d,]/g, "");
     if(clean === ""){
         input.value = "";
         return;
