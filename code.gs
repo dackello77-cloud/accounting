@@ -501,6 +501,18 @@ function parseDateFlexible(value) {
         Number(isoDateOnly[3])
       );
     }
+
+    const slashDate = clean.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?:?)?/);
+    if (slashDate) {
+      return new Date(
+        Number(slashDate[3]),
+        Number(slashDate[1]) - 1,
+        Number(slashDate[2]),
+        Number(slashDate[4] || 0),
+        Number(slashDate[5] || 0),
+        Number(slashDate[6] || 0)
+      );
+    }
   }
 
   const d = new Date(value);
