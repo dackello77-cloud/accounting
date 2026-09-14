@@ -632,10 +632,19 @@ function normalizeCardText_(value) {
 
 function cardNameMatches_(rowIme, normalizedSearch) {
   const normalizedRowIme = normalizeCardText_(rowIme);
+  const compactRowIme = compactCardText_(normalizedRowIme);
+  const compactSearch = compactCardText_(normalizedSearch);
   if (!normalizedRowIme || !normalizedSearch) return false;
   return normalizedRowIme === normalizedSearch ||
     normalizedRowIme.indexOf(normalizedSearch) !== -1 ||
-    normalizedSearch.indexOf(normalizedRowIme) !== -1;
+    normalizedSearch.indexOf(normalizedRowIme) !== -1 ||
+    compactRowIme === compactSearch ||
+    compactRowIme.indexOf(compactSearch) !== -1 ||
+    compactSearch.indexOf(compactRowIme) !== -1;
+}
+
+function compactCardText_(value) {
+  return String(value || "").replace(/\s+/g, "");
 }
 
 /* STORNO */
