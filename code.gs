@@ -569,9 +569,9 @@ function getCard(e) {
     const rowIme = String(row[3] || "").trim();
     const status = String(row[9] || "").trim().toUpperCase();
 
-    if (status !== "ACTIVE") continue;
+    if (status === "STORNO" || status === "DELETED") continue;
     if (!normalizedIme && tip && rowTip !== tip) continue;
-    if (normalizedIme && normalizeCardText_(rowIme) !== normalizedIme) continue;
+    if (normalizedIme && !cardNameMatches_(rowIme, normalizedIme)) continue;
     if (from && datum < from) continue;
     if (to && datum > to) continue;
 
@@ -625,8 +625,17 @@ function getCard(e) {
 function normalizeCardText_(value) {
   return String(value || "")
     .trim()
+    .replace(/[.,;:()\-_/\\]+/g, " ")
     .replace(/\s+/g, " ")
     .toLowerCase();
+}
+
+function cardNameMatches_(rowIme, normalizedSearch) {
+  const normalizedRowIme = normalizeCardText_(rowIme);
+  if (!normalizedRowIme || !normalizedSearch) return false;
+  return normalizedRowIme === normalizedSearch ||
+    normalizedRowIme.indexOf(normalizedSearch) !== -1 ||
+    normalizedSearch.indexOf(normalizedRowIme) !== -1;
 }
 
 /* STORNO */
