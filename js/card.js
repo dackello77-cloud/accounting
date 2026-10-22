@@ -3,6 +3,9 @@ import * as api from "./api.js";
 import { escapeHtml, formatMoney, formatDate, currentMonthRange, openPrintWindow, errorMessage,
          showModal, hideModal, TYPE_LABELS } from "./util.js";
 import { LOGO_URL } from "./logo.js";
+import { documentFileName, shortId } from "./files.js";
+import { savePdfDocument } from "./docsave.js";
+import { todayIso } from "./util.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -84,12 +87,25 @@ export function buildCardDocumentHtml(){
         + `${table}<div class="footer">Dokument generisan iz M&M Safety Accounting aplikacije</div></body></html>`;
 }
 
-export function handleCardDocumentAction(action){
+export async function handleCardDocumentAction(action){
     const status = $("cardDocStatus");
+    const html = buildCardDocumentHtml();
     if(action === "save" || action === "both"){
-        status.textContent = "Čuvanje PDF-a stiže u sledećem koraku (M4). Za sada koristite PRINT.";
-        return;
+        const select = $("cardPartner");
+        const name = select.value ? select.options[select.selectedIndex].text : (TYPE_LABELS[selectedTip()] || "Kartica");
+        const from = $("cardFrom").value, to = $("cardTo").value;
+        status.textContent = "Čuvam PDF...";
+        try{
+            const doc = await savePdfDocument({ html, category: "kartice", fileName: documentFileName(todayIso(), name, from && to ? from + "_" + to : "KARTICA"), subfolder: shortId() });
+            status.textContent = "PDF je sačuvan: " + doc.fileName;
+        }catch(error){
+            status.textContent = errorMessage(error, "Greška pri čuvanju PDF-a.");
+            return;
+        }
+        if(action === "save") return;
+        status.textContent = "PDF je sačuvan. Otvaram štampu...";
+    }else{
+        status.textContent = "Otvaram dokument za štampu...";
     }
-    status.textContent = "Otvaram dokument za štampu...";
-    openPrintWindow(buildCardDocumentHtml());
+    openPrintWindow(html);
 }

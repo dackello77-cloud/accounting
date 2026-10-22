@@ -6,6 +6,11 @@ import * as transaction from "./transaction.js";
 import * as review from "./review.js";
 import * as card from "./card.js";
 import * as notes from "./notes.js";
+import * as receipts from "./receipts.js";
+import * as documents from "./documents.js";
+import * as obracunR from "./obracun_r.js";
+import * as obracunK from "./obracun_k.js";
+import * as invoice from "./invoice.js";
 
 const loginPage = document.getElementById("loginPage");
 const loginForm = document.getElementById("loginForm");
@@ -82,12 +87,54 @@ Object.assign(window, {
     closeNotesModal: notes.closeNotesModal,
     handleNoteTypeChange: notes.handleNoteTypeChange,
     resetNoteForm: notes.resetNoteForm,
-    saveNote: notes.saveNote
-});
-
-// Ekrani koji se prenose u koraku M4; do tada samo poruka.
-["openReceiptModal", "openDocumentsModal", "openObracunRModal", "openObracunKModal", "openInvoiceModal"].forEach(name => {
-    window[name] = () => alert("Ovaj ekran se prenosi u sledećem koraku (M4).");
+    saveNote: notes.saveNote,
+    openReceiptModal: receipts.openReceiptModal,
+    closeReceiptModal: receipts.closeReceiptModal,
+    chooseReceiptFile: receipts.chooseReceiptFile,
+    handleReceiptFileFallback: receipts.handleReceiptFileFallback,
+    saveReceipt: receipts.saveReceipt,
+    loadTransactionReceipts: receipts.loadTransactionReceipts,
+    selectTransactionReceipt: receipts.selectTransactionReceipt,
+    openDocumentsModal: documents.openDocumentsModal,
+    closeDocumentsModal: documents.closeDocumentsModal,
+    uploadStatement: documents.uploadStatement,
+    openObracunRModal: obracunR.openObracunRModal,
+    closeObracunRModal: obracunR.closeObracunRModal,
+    renderObracunR: obracunR.renderObracunR,
+    addObracunRow: obracunR.addObracunRow,
+    deleteObracunRow: obracunR.deleteObracunRow,
+    updateObracunRow: obracunR.updateObracunRow,
+    loadObracunEmployees: obracunR.loadObracunEmployees,
+    applyDefaultSalary: obracunR.applyDefaultSalary,
+    printObracunR: obracunR.printObracunR,
+    saveObracunRPdfOnly: obracunR.saveObracunRPdfOnly,
+    toggleObracunEmailBox: obracunR.toggleObracunEmailBox,
+    sendObracunREmail: obracunR.sendObracunREmail,
+    ...obracunR.emailActions,
+    openObracunKModal: obracunK.openObracunKModal,
+    closeObracunKModal: obracunK.closeObracunKModal,
+    renderObracunK: obracunK.renderObracunK,
+    loadObracunKEmployees: obracunK.loadObracunKEmployees,
+    updateObracunKRow: obracunK.updateObracunKRow,
+    deleteObracunKRow: obracunK.deleteObracunKRow,
+    printObracunK: obracunK.printObracunK,
+    saveObracunKPdfOnly: obracunK.saveObracunKPdfOnly,
+    toggleObracunKEmailBox: obracunK.toggleObracunKEmailBox,
+    sendObracunKEmail: obracunK.sendObracunKEmail,
+    ...obracunK.emailActions,
+    openInvoiceModal: invoice.openInvoiceModal,
+    closeInvoiceModal: invoice.closeInvoiceModal,
+    newInvoice: invoice.newInvoice,
+    fillInvoiceCompany: invoice.fillInvoiceCompany,
+    addInvoiceItem: invoice.addInvoiceItem,
+    fillInvoiceArticle: invoice.fillInvoiceArticle,
+    updateInvoiceDueDate: invoice.updateInvoiceDueDate,
+    renderInvoicePreview: invoice.renderInvoicePreview,
+    printInvoice: invoice.printInvoice,
+    saveInvoicePdfOnly: invoice.saveInvoicePdfOnly,
+    toggleInvoiceEmailBox: invoice.toggleInvoiceEmailBox,
+    sendInvoiceEmail: invoice.sendInvoiceEmail,
+    ...invoice.emailActions
 });
 
 initChrome();
@@ -95,6 +142,7 @@ partners.initPartners();
 transaction.initTransaction();
 review.initReview();
 notes.initNotes();
+documents.initDocuments();
 
 (async function init(){
     const session = await api.getSession();

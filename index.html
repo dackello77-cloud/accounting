@@ -491,7 +491,18 @@ body.light-theme #dashboard .menu .mobile-notes-button{
 @media(max-width:600px){.partner-grid{grid-template-columns:1fr}}
 .partner-code{color:#94a3b8;font-size:13px;font-weight:bold;min-height:18px;margin-bottom:6px}
 .active-toggle{margin:12px 0 16px;white-space:normal!important}
-#transactionModal .modal-box{width:650px}
+.receipt-toolbar.single{grid-template-columns:1fr}
+.documents-grid .document-folder-btn.active{border-color:#2563eb;background:#172554}
+.documents-list-box{margin-top:18px}
+.documents-list-box h3{margin-bottom:10px}
+.documents-upload{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;margin-bottom:12px}
+.documents-upload input[type=file]{padding:10px}
+.doc-actions{white-space:nowrap}
+.doc-actions button{padding:7px 12px;margin-right:6px;border:none;border-radius:8px;background:#2563eb;color:white;font-weight:bold}
+.doc-actions button + button{background:#0ea5e9}
+.doc-note{font-size:12px;color:#94a3b8;margin-top:3px}
+.invoice-actions{grid-template-columns:repeat(4,1fr)!important}
+@media(max-width:600px){.documents-upload{grid-template-columns:1fr}.invoice-actions{grid-template-columns:1fr!important}}
 </style>
 </head>
 
@@ -670,6 +681,7 @@ body.light-theme #dashboard .menu .mobile-notes-button{
             <button class="close-btn" onclick="closeTransactionModal()">X</button>
         </div>
 
+        <div class="transaction-layout">
         <div class="transaction-form-panel">
             <div class="input-group"><label>Naziv</label><select id="transactionPartner" onchange="fillEntityData()"><option value="">Učitavam...</option></select></div>
             <div class="input-group"><label>Adresa</label><input type="text" id="transactionAddress" readonly></div>
@@ -692,6 +704,26 @@ body.light-theme #dashboard .menu .mobile-notes-button{
                 </div>
             </div>
             <div class="doc-status" id="transactionDocStatus"></div>
+        </div>
+
+        <div class="transaction-receipt-panel">
+            <h3 style="margin-bottom:10px;">Račun uz transakciju</h3>
+            <p style="color:#94a3b8;margin-bottom:12px;font-size:14px;">Izaberite račun sačuvan kroz „Sačuvaj račun”. Nakon SAVE, račun se povezuje sa transakcijom i dobija isti naziv kao dokument transakcije.</p>
+
+            <div class="receipt-toolbar single">
+                <button class="save-btn" style="background:#0ea5e9;" onclick="loadTransactionReceipts()">PREUZMI RAČUN</button>
+            </div>
+
+            <div class="input-group receipt-select">
+                <label>Izabrani račun</label>
+                <select id="transactionReceiptSelect" onchange="selectTransactionReceipt()">
+                    <option value="">Prvo kliknite PREUZMI RAČUN</option>
+                </select>
+            </div>
+
+            <div class="receipt-preview-box" id="transactionReceiptPreview">Preview računa će se prikazati ovde.</div>
+            <div class="receipt-selected" id="transactionReceiptInfo"></div>
+        </div>
         </div>
     </div>
 </div>
@@ -781,7 +813,7 @@ body.light-theme #dashboard .menu .mobile-notes-button{
 
         <div class="input-group">
             <label>Izaberite račun iz računara</label>
-            <input type="file" id="receiptFile" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" onchange="handleReceiptFileFallback()">
+            <input type="file" id="receiptFile" accept="application/pdf,image/jpeg,image/png,image/heic,image/heif,.pdf,.jpg,.jpeg,.png,.heic,.heif" onchange="handleReceiptFileFallback()">
             <button type="button" id="receiptPickerBtn" class="save-btn receipt-picker-btn" onclick="chooseReceiptFile()" style="display:none;">
                 IZABERI FAJL
             </button>
@@ -804,66 +836,26 @@ body.light-theme #dashboard .menu .mobile-notes-button{
 
 <!-- DOCUMENTS MODAL -->
 <div class="modal" id="documentsModal">
-    <div class="modal-box" style="width:850px;max-width:95%;">
+    <div class="modal-box" style="width:950px;max-width:95%;">
         <div class="modal-header">
             <h2>Dokumenti</h2>
             <button class="close-btn" onclick="closeDocumentsModal()">X</button>
         </div>
 
-        <p style="color:#94a3b8;margin-bottom:12px;">
-            Klikom na dugme otvara se odgovarajući Google Drive folder.
-        </p>
+        <p style="color:#94a3b8;margin-bottom:12px;">Izaberite kategoriju da vidite sačuvane fajlove.</p>
+        <div class="documents-grid" id="documentsGrid"></div>
 
-        <div class="documents-grid">
-
-            <!-- TRANSAKCIJE FOLDER LINK -->
-            <button class="document-folder-btn" onclick="openDriveFolder('https://drive.google.com/drive/folders/1vvcAJIUAYc5DsuSHnmNAcD4tJf2uej6g?usp=sharing')">
-                <strong>Transakcije</strong>
-                <span>PDF dokumenti transakcija</span>
-            </button>
-
-            <!-- KARTICE FOLDER LINK -->
-            <button class="document-folder-btn" onclick="openDriveFolder('https://drive.google.com/drive/folders/1wB6-Chc8W8T_B5LR8GZCXj_QKGkyfNWS?usp=sharing')">
-                <strong>Kartice</strong>
-                <span>PDF kartice i pregledi</span>
-            </button>
-
-            <!-- IZVODI DINARSKI FOLDER LINK -->
-            <button class="document-folder-btn" onclick="openDriveFolder('https://drive.google.com/drive/folders/12irpIhqoYyZ-kbq6mXLzCW6hhcXCNKF5?usp=sharing')">
-                <strong>Izvodi - Dinarski</strong>
-                <span>Dinarski bankovni izvodi</span>
-            </button>
-
-            <!-- IZVODI DEVIZNI FOLDER LINK -->
-            <button class="document-folder-btn" onclick="openDriveFolder('https://drive.google.com/drive/folders/1q18HfSwyGWZn_pfonvQHdaYQUQUmRSgQ?usp=sharing')">
-                <strong>Izvodi - Devizni</strong>
-                <span>Devizni bankovni izvodi</span>
-            </button>
-
-            <!-- OBRACUN R FOLDER LINK -->
-            <button class="document-folder-btn" onclick="openDriveFolder('https://drive.google.com/drive/folders/1nJMpx2QCgg1baho7eZboWaIv5zrWkgGH?usp=sharing')">
-                <strong>Obračun - R</strong>
-                <span>PDF obračuni R</span>
-            </button>
-
-            <!-- OBRACUN K FOLDER LINK -->
-            <button class="document-folder-btn" onclick="openDriveFolder('https://drive.google.com/drive/folders/1-vkM_gYA-Dc83HhaUvvNAv2mc39j6OFA?usp=sharing')">
-                <strong>Obračun - K</strong>
-                <span>PDF obračuni K</span>
-            </button>
-
-            <!-- RACUNI FOLDER LINK -->
-            <button class="document-folder-btn" onclick="openDriveFolder('https://drive.google.com/drive/folders/1cfKqzIraphOF7JNf0J7YE8dpHfTfFciD?usp=sharing')">
-                <strong>Računi</strong>
-                <span>Sačuvani i povezani računi</span>
-            </button>
-
-            <!-- FAKTURE FOLDER LINK -->
-            <button class="document-folder-btn" onclick="openDriveFolder('https://drive.google.com/drive/folders/1CeUQO1vYkxREPpa4jt2-p5PT0N0IsCvR?usp=sharing')">
-                <strong>Fakture</strong>
-                <span>Izdate i sačuvane fakture</span>
-            </button>
-
+        <div class="documents-list-box" id="documentsListBox" style="display:none;">
+            <h3 id="documentsListTitle"></h3>
+            <div class="documents-upload" id="documentsUpload">
+                <div class="input-group"><label>Dodaj izvod (PDF, JPG, PNG, HEIC do 15 MB)</label><input type="file" id="documentsFile" multiple accept="application/pdf,image/jpeg,image/png,image/heic,image/heif,.pdf,.jpg,.jpeg,.png,.heic,.heif"></div>
+                <button class="save-btn" onclick="uploadStatement()">SAČUVAJ IZVOD</button>
+            </div>
+            <div class="doc-status" id="documentsStatus"></div>
+            <table>
+                <thead><tr><th>Naziv</th><th>Sačuvano</th><th></th></tr></thead>
+                <tbody id="documentsList"></tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -1156,7 +1148,7 @@ body.light-theme #dashboard .menu .mobile-notes-button{
 
                 <div class="invoice-panel">
                     <h3 style="margin-bottom:12px;">Kupac / Customer</h3>
-                    <div class="input-group"><label>Kompanija</label><input type="text" id="invoiceCompany" list="invoiceCompanyList" oninput="fillInvoiceCompany();renderInvoicePreview();"><datalist id="invoiceCompanyList"></datalist></div>
+                    <div class="input-group"><label>Kompanija</label><select id="invoiceCompany" onchange="fillInvoiceCompany()"><option value="">Izaberite kupca</option></select></div>
                     <div class="invoice-grid">
                         <div class="input-group"><label>Adresa</label><input type="text" id="invoiceAddress" oninput="renderInvoicePreview()"></div>
                         <div class="input-group"><label>Žiro račun</label><input type="text" id="invoiceZiro" oninput="renderInvoicePreview()"></div>
@@ -1178,6 +1170,7 @@ body.light-theme #dashboard .menu .mobile-notes-button{
                     <button class="save-btn doc-btn-save" onclick="saveInvoicePdfOnly()">SAVE PDF</button>
                     <button class="save-btn doc-btn-print" onclick="printInvoice()">PRINT</button>
                     <button class="save-btn doc-btn-both" onclick="toggleInvoiceEmailBox()">SEND EMAIL</button>
+                    <button class="save-btn" style="background:#64748b;" onclick="newInvoice()">NOVA FAKTURA</button>
                 </div>
 
                 <div class="invoice-email-box" id="invoiceEmailBox">

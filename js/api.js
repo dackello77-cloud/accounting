@@ -1,5 +1,6 @@
 // Sav pristup Supabase-u (baza, Storage, Edge Function) na jednom mestu.
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
+import { UserError } from "./util.js";
 
 export const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
@@ -161,4 +162,109 @@ export function listEmailRecipients(){
 
 export function addEmailRecipient(email, name){
     return run(sb.from("email_recipients").insert({ email: String(email).trim(), name: name || null }).select().single());
+}
+
+// ---------- Storage i dokumenti ----------
+
+export async function uploadFile(bucket, path, body, { contentType, upsert = false } = {}){
+    return run(sb.storage.from(bucket).upload(path, body, { contentType, upsert, cacheControl: "60" }));
+}
+
+// Signed URL važi 60 s; sa downloadName pregledač preuzima fajl pod tim imenom.
+export async function signedUrl(bucket, path, downloadName){
+    const data = await run(sb.storage.from(bucket).createSignedUrl(path, 60, downloadName ? { download: downloadName } : undefined));
+    return data.signedUrl;
+}
+
+export async function downloadFile(bucket, path){
+    return run(sb.storage.from(bucket).download(path));
+}
+
+export function moveFile(bucket, from, to){
+    return run(sb.storage.from(bucket).move(from, to));
+}
+
+export function upsertDocument(category, storagePath, fileName){
+    return run(sb.from("documents").upsert({ category, storage_path: storagePath, file_name: fileName }, { onConflict: "storage_path" }));
+}
+
+export function listDocuments(category){
+    return run(sb.from("documents").select("*").eq("category", category).order("created_at", { ascending: false }));
+}
+
+export function setTransactionDocument(id, path){
+    return run(sb.from("transactions").update({ document_path: path }).eq("id", id));
+}
+
+// ---------- Računi (skenirani) ----------
+
+export function addReceipt(fields){
+    return run(sb.from("receipts").insert(fields).select().single());
+}
+
+export function listInboxReceipts(){
+    return run(sb.from("receipts").select("*").is("transaction_id", null).order("uploaded_at", { ascending: false }));
+}
+
+export function listAllReceipts(){
+    return run(sb.from("receipts").select("*").order("uploaded_at", { ascending: false }));
+}
+
+export function attachReceipt(id, transactionId, storagePath){
+    return run(sb.from("receipts").update({ transaction_id: transactionId, storage_path: storagePath }).eq("id", id));
+}
+
+// ---------- Fakture ----------
+
+export function nextInvoiceNumber(year){
+    return run(sb.rpc("next_invoice_number", { p_year: year }));
+}
+
+export function saveInvoice(invoice, items){
+    return run(sb.rpc("save_invoice", { p_invoice: invoice, p_items: items }));
+}
+
+export function setInvoicePdf(id, path){
+    return run(sb.from("invoices").update({ pdf_path: path }).eq("id", id));
+}
+
+export function listInvoiceCompanies(){
+    return run(sb.from("partners").select("*").in("group_type", ["ulaz", "porezi", "klijenti"]).eq("active", true).order("name"));
+}
+
+// ---------- Obračuni R i K ----------
+
+export function getDraft(type){
+    return run(sb.from("calc_drafts").select("data").eq("type", type).maybeSingle());
+}
+
+export function saveDraft(type, data){
+    return run(sb.from("calc_drafts").upsert({ type, data }, { onConflict: "type" }));
+}
+
+// Jedan red po mesecu: ponovno čuvanje istog meseca ažurira red.
+export async function savePayroll(table, fields){
+    const existing = await run(sb.from(table).select("id").eq("month", fields.month).eq("year", fields.year)
+        .order("created_at", { ascending: false }).limit(1));
+    if(existing.length){
+        return run(sb.from(table).update(fields).eq("id", existing[0].id).select().single());
+    }
+    return run(sb.from(table).insert(fields).select().single());
+}
+
+// ---------- Mejl ----------
+
+export async function sendEmail(payload){
+    const { data, error } = await sb.functions.invoke("send-email", { body: payload });
+    if(error){
+        let message = "Greška pri slanju mejla.";
+        try{
+            const body = await error.context?.json();
+            if(body?.error) message = body.error;
+        }catch{}
+        if(error.context?.status === 401) onAuthRequired();
+        if(error.context?.status === 404) message = "Funkcija send-email nije postavljena na Supabase.";
+        throw new UserError(message);
+    }
+    return data;
 }

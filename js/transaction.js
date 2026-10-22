@@ -4,6 +4,9 @@ import { escapeHtml, formatMoney, formatDate, parseAmount, todayIso, bindAmountI
          errorMessage, showModal, hideModal, TYPE_LABELS } from "./util.js";
 import { LOGO_URL } from "./logo.js";
 import { loadDashboard } from "./dashboard.js";
+import { documentFileName } from "./files.js";
+import { savePdfDocument } from "./docsave.js";
+import { resetTransactionReceiptPanel, selectedReceipt, attachSelectedReceipt } from "./receipts.js";
 
 const $ = (id) => document.getElementById(id);
 let currentType = "";
@@ -36,6 +39,7 @@ function resetTransactionModal(){
     btn.style.display = "block";
     btn.disabled = false;
     btn.textContent = "SAVE";
+    resetTransactionReceiptPanel();
 }
 
 async function loadPartners(){
@@ -102,6 +106,18 @@ export async function saveTransaction(){
     }
 
     loadDashboard();
+
+    if(selectedReceipt()){
+        $("transactionDocStatus").textContent = "Povezujem račun sa transakcijom...";
+        try{
+            const name = await attachSelectedReceipt(lastTransaction.id, transactionFileName(lastTransaction));
+            $("transactionReceiptInfo").innerHTML = `Račun je povezan i preimenovan: <strong>${escapeHtml(name)}</strong>`;
+        }catch(error){
+            console.error(error);
+            $("transactionReceiptInfo").textContent = "Račun nije povezan, ali je transakcija sačuvana.";
+        }
+    }
+
     btn.style.display = "none";
     btn.textContent = "SAVE";
     $("transactionDocActions").style.display = "block";
@@ -124,15 +140,37 @@ export function buildTransactionDocumentHtml(t){
         + `</table></body></html>`;
 }
 
-export function handleTransactionDocumentAction(action){
+function transactionFileName(t){
+    return documentFileName(t.tx_date, t.partner_name, t.invoice_number);
+}
+
+// PDF transakcije u Storage (transakcije/<id>/…); ponovno čuvanje iste transakcije prepisuje fajl.
+async function saveTransactionPdf(t){
+    const doc = await savePdfDocument({ html: buildTransactionDocumentHtml(t), category: "transakcije", fileName: transactionFileName(t), subfolder: t.id });
+    await api.setTransactionDocument(t.id, doc.path);
+    return doc;
+}
+
+export async function handleTransactionDocumentAction(action){
     const status = $("transactionDocStatus");
-    if(!lastTransaction){ status.textContent = "Prvo sačuvajte transakciju."; return; }
+    const t = lastTransaction;
+    if(!t){ status.textContent = "Prvo sačuvajte transakciju."; return; }
+
     if(action === "save" || action === "both"){
-        status.textContent = "Čuvanje PDF-a stiže u sledećem koraku (M4). Za sada koristite PRINT.";
-        return;
+        status.textContent = "Čuvam PDF...";
+        try{
+            const doc = await saveTransactionPdf(t);
+            status.textContent = "PDF je sačuvan: " + doc.fileName;
+        }catch(error){
+            status.textContent = errorMessage(error, "Greška pri čuvanju PDF-a.");
+            return;
+        }
+        if(action === "save") return;
+        status.textContent = "PDF je sačuvan. Otvaram štampu...";
+    }else{
+        status.textContent = "Otvaram prozor za štampu...";
     }
-    status.textContent = "Otvaram prozor za štampu...";
-    openPrintWindow(buildTransactionDocumentHtml(lastTransaction));
+    openPrintWindow(buildTransactionDocumentHtml(t));
     setTimeout(() => { closeTransactionModal(); loadDashboard(); }, 500);
 }
 

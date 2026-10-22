@@ -124,8 +124,12 @@ export function openPrintWindow(html){
 export function showModal(id){ document.getElementById(id).style.display = "flex"; }
 export function hideModal(id){ document.getElementById(id).style.display = "none"; }
 
+// Greška sa porukom za korisnika (na srpskom), prikazuje se kakva jeste.
+export class UserError extends Error {}
+
 // Poruka greške iz Supabase-a na srpskom.
 export function errorMessage(error, fallback = "Došlo je do greške."){
+    if(error instanceof UserError) return error.message;
     const msg = String(error?.message || "");
     if(/partners_tax_id_rs/.test(msg)) return "PIB mora imati 9 cifara.";
     if(/partners_registration_no_rs/.test(msg)) return "Matični broj mora imati 8 cifara.";
