@@ -487,6 +487,11 @@ body.light-theme #dashboard .menu .mobile-notes-button{
 #notesModal .modal-header h2{font-size:22px}
 }
 
+.partner-grid{display:grid;grid-template-columns:110px 1fr 1fr;gap:12px}
+@media(max-width:600px){.partner-grid{grid-template-columns:1fr}}
+.partner-code{color:#94a3b8;font-size:13px;font-weight:bold;min-height:18px;margin-bottom:6px}
+.active-toggle{margin:12px 0 16px;white-space:normal!important}
+#transactionModal .modal-box{width:650px}
 </style>
 </head>
 
@@ -521,7 +526,10 @@ body.light-theme #dashboard .menu .mobile-notes-button{
         <div class="menu">
             <button onclick="loadDashboard()">Dashboard</button>
             <button onclick="openAddModal()">Dodaj / Uredi</button>
-            <button onclick="openTransactionModal()">Transakcije</button>
+            <button onclick="openTransactionModal('ulaz')">Ulaz</button>
+            <button onclick="openTransactionModal('porezi')">Porezi</button>
+            <button onclick="openTransactionModal('klijenti')">Klijenti</button>
+            <button onclick="openTransactionModal('zaposleni')">Zaposleni</button>
             <button onclick="openCardModal()">Kartica</button>
             <button onclick="openReviewModal()">Pregled</button>
             <button onclick="openReceiptModal()">Sačuvaj račun</button>
@@ -621,11 +629,11 @@ body.light-theme #dashboard .menu .mobile-notes-button{
         <div class="input-group">
             <label>Tip</label>
             <div class="radio-group">
-                <label class="radio-item"><input type="radio" name="addTip" value="Ulaz" onchange="handleAddTipChange()"> Ulaz</label>
-                <label class="radio-item"><input type="radio" name="addTip" value="Porezi" onchange="handleAddTipChange()"> Porezi</label>
-                <label class="radio-item"><input type="radio" name="addTip" value="Klijenti" onchange="handleAddTipChange()"> Klijenti</label>
-                <label class="radio-item"><input type="radio" name="addTip" value="Zaposleni" onchange="handleAddTipChange()"> Zaposleni</label>
-                <label class="radio-item"><input type="radio" name="addTip" value="Artikli" onchange="handleAddTipChange()"> Artikli</label>
+                <label class="radio-item"><input type="radio" name="addTip" value="ulaz" onchange="handleAddTipChange()"> Ulaz</label>
+                <label class="radio-item"><input type="radio" name="addTip" value="porezi" onchange="handleAddTipChange()"> Porezi</label>
+                <label class="radio-item"><input type="radio" name="addTip" value="klijenti" onchange="handleAddTipChange()"> Klijenti</label>
+                <label class="radio-item"><input type="radio" name="addTip" value="zaposleni" onchange="handleAddTipChange()"> Zaposleni</label>
+                <label class="radio-item"><input type="radio" name="addTip" value="artikli" onchange="handleAddTipChange()"> Artikli</label>
             </div>
         </div>
 
@@ -636,10 +644,21 @@ body.light-theme #dashboard .menu .mobile-notes-button{
             </select>
         </div>
 
+        <div class="partner-code" id="addCode"></div>
         <div class="input-group"><label id="addImeLabel">Naziv</label><input type="text" id="addIme"></div>
         <div class="input-group"><label id="addAdresaLabel">Adresa</label><input type="text" id="addAdresa"></div>
-        <div class="input-group" id="addZiroGroup"><label>Žiro račun</label><input type="text" id="addZiro"></div>
-        <button class="save-btn" onclick="saveEntity()">SAVE</button>
+        <div id="addPartnerFields">
+            <div class="input-group"><label>Žiro račun</label><input type="text" id="addZiro"></div>
+            <div class="partner-grid">
+                <div class="input-group"><label>Država</label><input type="text" id="addCountry" maxlength="2" value="RS" placeholder="RS" autocapitalize="characters"></div>
+                <div class="input-group"><label id="addTaxIdLabel">PIB</label><input type="text" id="addTaxId" inputmode="numeric"></div>
+                <div class="input-group" id="addRegNoGroup"><label>Matični broj</label><input type="text" id="addRegNo" inputmode="numeric"></div>
+            </div>
+            <div class="input-group"><label>Email</label><input type="email" id="addEmail" autocapitalize="none"></div>
+        </div>
+        <label class="radio-item active-toggle"><input type="checkbox" id="addActive" checked> Aktivan (neaktivni se ne prikazuju u padajućim menijima)</label>
+        <button class="save-btn" id="addSaveBtn" onclick="saveEntity()">SAVE</button>
+        <div class="doc-status" id="addStatus"></div>
     </div>
 </div>
 
@@ -647,67 +666,32 @@ body.light-theme #dashboard .menu .mobile-notes-button{
 <div class="modal" id="transactionModal">
     <div class="modal-box">
         <div class="modal-header">
-            <h2>Nova transakcija</h2>
+            <h2 id="transactionTitle">Nova transakcija</h2>
             <button class="close-btn" onclick="closeTransactionModal()">X</button>
         </div>
 
-        <div class="transaction-layout">
-            <div class="transaction-form-panel">
-                <div class="input-group">
-                    <label>Tip</label>
-                    <div class="radio-group">
-                        <label class="radio-item"><input type="radio" name="transactionTip" value="Ulaz" onchange="loadEntities()"> Ulaz</label>
-                        <label class="radio-item"><input type="radio" name="transactionTip" value="Porezi" onchange="loadEntities()"> Porezi</label>
-                        <label class="radio-item"><input type="radio" name="transactionTip" value="Klijenti" onchange="loadEntities()"> Klijenti</label>
-                        <label class="radio-item"><input type="radio" name="transactionTip" value="Zaposleni" onchange="loadEntities()"> Zaposleni</label>
-                    </div>
-                </div>
+        <div class="transaction-form-panel">
+            <div class="input-group"><label>Naziv</label><select id="transactionPartner" onchange="fillEntityData()"><option value="">Učitavam...</option></select></div>
+            <div class="input-group"><label>Adresa</label><input type="text" id="transactionAddress" readonly></div>
+            <div class="input-group"><label>Žiro račun</label><input type="text" id="transactionZiro" readonly></div>
+            <div class="input-group"><label>Iznos</label><input type="text" id="transactionAmount" inputmode="decimal" autocomplete="off" placeholder="0,00"></div>
+            <div class="input-group"><label>Datum</label><input type="date" id="transactionDate"></div>
+            <div class="input-group"><label>Broj fakture</label><input type="text" id="transactionInvoice"></div>
+            <div class="input-group"><label>Notes</label><textarea id="transactionNotes"></textarea></div>
+            <button class="save-btn" id="transactionSaveBtn" onclick="saveTransaction()">SAVE</button>
 
-                <div class="input-group"><label>Naziv</label><input type="text" id="transactionName" list="entityList" oninput="fillEntityData()"><datalist id="entityList"></datalist></div>
-                <div class="input-group"><label>Adresa</label><input type="text" id="transactionAddress" readonly></div>
-                <div class="input-group"><label>Žiro račun</label><input type="text" id="transactionZiro" readonly></div>
-                <div class="input-group"><label>Iznos</label><input type="text" id="transactionAmount" inputmode="decimal" autocomplete="off" placeholder="0,00" onkeydown="handleTransactionAmountKeydown(event,this)" oninput="formatTransactionAmountInput(this)" onfocus="prepareTransactionAmountInput(this)" onblur="finalizeTransactionAmountInput(this)"></div>
-                <div class="input-group"><label>Broj fakture</label><input type="text" id="transactionInvoice"></div>
-                <div class="input-group"><label>Notes</label><textarea id="transactionNotes"></textarea></div>
-                <button class="save-btn" id="transactionSaveBtn" onclick="saveTransaction()">SAVE</button>
+            <div class="document-action-box" id="transactionDocActions">
+                <h3>Transakcija je sačuvana</h3>
+                <p>Izaberite šta želite da uradite sa dokumentom.</p>
 
-                <div class="document-action-box" id="transactionDocActions">
-                    <h3>Transakcija je sačuvana</h3>
-                    <p>Izaberite šta želite da uradite sa dokumentom.</p>
-
-                    <div class="document-action-grid">
-                        <button class="save-btn doc-btn-save" onclick="handleTransactionDocumentAction('save')">SAVE PDF</button>
-                        <button class="save-btn doc-btn-print" onclick="handleTransactionDocumentAction('print')">PRINT</button>
-                        <button class="save-btn doc-btn-both" onclick="handleTransactionDocumentAction('both')">SAVE PDF & PRINT</button>
-                        <button class="save-btn doc-btn-new" onclick="newTransactionAfterSave()">NOVA TRANSAKCIJA</button>
-                    </div>
-
-                    <div class="doc-status" id="transactionDocStatus"></div>
+                <div class="document-action-grid">
+                    <button class="save-btn doc-btn-save" onclick="handleTransactionDocumentAction('save')">SAVE PDF</button>
+                    <button class="save-btn doc-btn-print" onclick="handleTransactionDocumentAction('print')">PRINT</button>
+                    <button class="save-btn doc-btn-both" onclick="handleTransactionDocumentAction('both')">SAVE PDF & PRINT</button>
+                    <button class="save-btn doc-btn-new" onclick="newTransactionAfterSave()">NOVA TRANSAKCIJA</button>
                 </div>
             </div>
-
-            <div class="transaction-receipt-panel">
-                <h3 style="margin-bottom:10px;">Račun uz transakciju</h3>
-                <p style="color:#94a3b8;margin-bottom:12px;font-size:14px;">Izaberite račun iz foldera računa. Nakon SAVE, račun se premešta u folder transakcija i dobija isti naziv kao dokument transakcije.</p>
-
-                <div class="receipt-toolbar">
-                    <button class="save-btn" style="background:#0ea5e9;" onclick="loadTransactionReceipts()">PREUZMI RAČUN</button>
-                    <button class="save-btn" style="background:#334155;" onclick="openReceiptsFolder()">OTVORI FOLDER</button>
-                </div>
-
-                <div class="input-group receipt-select">
-                    <label>Izabrani račun</label>
-                    <select id="transactionReceiptSelect" onchange="selectTransactionReceipt()">
-                        <option value="">Prvo kliknite PREUZMI RAČUN</option>
-                    </select>
-                </div>
-
-                <div class="receipt-preview-box" id="transactionReceiptPreview">
-                    Preview računa će se prikazati ovde.
-                </div>
-
-                <div class="receipt-selected" id="transactionReceiptInfo"></div>
-            </div>
+            <div class="doc-status" id="transactionDocStatus"></div>
         </div>
     </div>
 </div>
@@ -733,216 +717,57 @@ body.light-theme #dashboard .menu .mobile-notes-button{
 
 <!-- CARD MODAL -->
 <div class="modal" id="cardModal">
-
     <div class="modal-box">
-
         <div class="modal-header">
             <h2>Kartica</h2>
-
-            <button
-                class="close-btn"
-                onclick="closeCardModal()"
-            >
-                X
-            </button>
+            <button class="close-btn" onclick="closeCardModal()">X</button>
         </div>
 
         <div class="cards">
-
-            <!-- TIP -->
-
             <div class="card-row-types">
-
                 <div class="input-group">
-
                     <label>Tip</label>
-
                     <div class="radio-group">
-
-                        <label class="radio-item">
-                            <input
-                                type="radio"
-                                name="cardTip"
-                                value="Ulaz"
-                                onchange="loadCardEntities()"
-                            >
-                            Ulaz
-                        </label>
-
-                        <label class="radio-item">
-                            <input
-                                type="radio"
-                                name="cardTip"
-                                value="Porezi"
-                                onchange="loadCardEntities()"
-                            >
-                            Porezi
-                        </label>
-
-                        <label class="radio-item">
-                            <input
-                                type="radio"
-                                name="cardTip"
-                                value="Klijenti"
-                                onchange="loadCardEntities()"
-                            >
-                            Klijenti
-                        </label>
-
-                        <label class="radio-item">
-                            <input
-                                type="radio"
-                                name="cardTip"
-                                value="Zaposleni"
-                                onchange="loadCardEntities()"
-                            >
-                            Zaposleni
-                        </label>
-
+                        <label class="radio-item"><input type="radio" name="cardTip" value="ulaz" onchange="loadCardEntities()"> Ulaz</label>
+                        <label class="radio-item"><input type="radio" name="cardTip" value="porezi" onchange="loadCardEntities()"> Porezi</label>
+                        <label class="radio-item"><input type="radio" name="cardTip" value="klijenti" onchange="loadCardEntities()"> Klijenti</label>
+                        <label class="radio-item"><input type="radio" name="cardTip" value="zaposleni" onchange="loadCardEntities()"> Zaposleni</label>
                     </div>
-
                 </div>
-
             </div>
-
-            <!-- OSTALO -->
 
             <div class="card-row">
-
                 <div class="input-group">
-
                     <label>Naziv</label>
-
-                    <input
-                        type="text"
-                        id="cardName"
-                        list="cardEntityList"
-                    >
-
-                    <datalist id="cardEntityList"></datalist>
-
+                    <select id="cardPartner"><option value="">Svi</option></select>
                 </div>
-
+                <div class="input-group"><label>Od</label><input type="date" id="cardFrom"></div>
+                <div class="input-group"><label>Do</label><input type="date" id="cardTo"></div>
                 <div class="input-group">
-
-                    <label>Od</label>
-
-                    <input
-                        type="date"
-                        id="cardFrom"
-                    >
-
-                </div>
-
-                <div class="input-group">
-
-                    <label>Do</label>
-
-                    <input
-                        type="date"
-                        id="cardTo"
-                    >
-
-                </div>
-
-                <div class="input-group">
-
                     <label>Prikaz</label>
-
                     <div class="card-view-group">
-
-                        <label class="radio-item">
-                            <input
-                                type="radio"
-                                name="cardView"
-                                value="single"
-                                checked
-                            >
-                            Pojedinačno
-                        </label>
-
-                        <label class="radio-item">
-                            <input
-                                type="radio"
-                                name="cardView"
-                                value="monthly"
-                            >
-                            Po mesecima
-                        </label>
-
-                        <label class="radio-item">
-                            <input
-                                type="radio"
-                                name="cardView"
-                                value="yearly"
-                            >
-                            Po godinama
-                        </label>
-
+                        <label class="radio-item"><input type="radio" name="cardView" value="single" checked> Pojedinačno</label>
+                        <label class="radio-item"><input type="radio" name="cardView" value="monthly"> Po mesecima</label>
+                        <label class="radio-item"><input type="radio" name="cardView" value="yearly"> Po godinama</label>
                     </div>
-
                 </div>
-
             </div>
-
         </div>
 
-        <!-- DUGMAD -->
-
         <div class="action-row">
-
-            <button
-                class="save-btn"
-                onclick="loadCard()"
-            >
-                PRIKAŽI
-            </button>
-
-            <button
-                class="save-btn doc-btn-save"
-                onclick="handleCardDocumentAction('save')"
-            >
-                SAVE PDF
-            </button>
-
-            <button
-                class="save-btn doc-btn-print"
-                onclick="handleCardDocumentAction('print')"
-            >
-                PRINT
-            </button>
-
-            <button
-                class="save-btn doc-btn-both"
-                onclick="handleCardDocumentAction('both')"
-            >
-                SAVE PDF & PRINT
-            </button>
-
+            <button class="save-btn" onclick="loadCard()">PRIKAŽI</button>
+            <button class="save-btn doc-btn-save" onclick="handleCardDocumentAction('save')">SAVE PDF</button>
+            <button class="save-btn doc-btn-print" onclick="handleCardDocumentAction('print')">PRINT</button>
+            <button class="save-btn doc-btn-both" onclick="handleCardDocumentAction('both')">SAVE PDF & PRINT</button>
         </div>
 
         <div class="doc-status" id="cardDocStatus"></div>
 
-        <!-- TABELA -->
-
         <table>
-
             <thead id="cardHead"></thead>
-
-            <tbody id="cardTable">
-
-                <tr>
-                    <td colspan="6">
-                        Nema podataka
-                    </td>
-                </tr>
-
-            </tbody>
-
+            <tbody id="cardTable"><tr><td colspan="6">Nema podataka</td></tr></tbody>
         </table>
-
     </div>
-
 </div>
 
 
@@ -1394,8 +1219,8 @@ body.light-theme #dashboard .menu .mobile-notes-button{
             <div class="input-group">
                 <label>Tip</label>
                 <select id="noteType" onchange="handleNoteTypeChange()">
-                    <option value="NOTE">Notes</option>
-                    <option value="REMINDER">Podsetnik</option>
+                    <option value="note">Notes</option>
+                    <option value="reminder">Podsetnik</option>
                 </select>
             </div>
             <div class="input-group">

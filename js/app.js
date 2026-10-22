@@ -1,5 +1,11 @@
-// Ulaz aplikacije: prijava, trajna sesija, prijava preko otvorenih prozora.
+// Ulaz aplikacije: prijava, trajna sesija, prijava preko otvorenih prozora, povezivanje ekrana.
 import * as api from "./api.js";
+import { loadDashboard, toggleTheme, initChrome } from "./dashboard.js";
+import * as partners from "./partners.js";
+import * as transaction from "./transaction.js";
+import * as review from "./review.js";
+import * as card from "./card.js";
+import * as notes from "./notes.js";
 
 const loginPage = document.getElementById("loginPage");
 const loginForm = document.getElementById("loginForm");
@@ -8,12 +14,6 @@ const loginError = document.getElementById("loginError");
 const dashboard = document.getElementById("dashboard");
 
 let appStarted = false;
-
-const moneyFormat = new Intl.NumberFormat("sr-Latn-RS", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-export function formatMoney(value){
-    const num = Number(value);
-    return moneyFormat.format(Number.isFinite(num) ? num : 0);
-}
 
 // Prijava se prikazuje preko aplikacije; otvoreni prozori i uneti podaci ostaju ispod.
 function showLogin(){
@@ -36,22 +36,6 @@ function startApp(){
     loadDashboard();
 }
 
-async function loadDashboard(){
-    try{
-        const data = await api.dashboardSummary(new Date().getFullYear());
-        if(!data) return;
-        document.getElementById("stanje").textContent = formatMoney(data.stanje) + " RSD";
-        document.getElementById("ulaz").textContent = formatMoney(data.ulaz) + " RSD";
-        document.getElementById("izlaz").textContent = formatMoney(data.izlaz) + " RSD";
-        const g = data.godina || {};
-        document.getElementById("godisnjiUlaz").textContent = formatMoney(g.ulaz) + " RSD";
-        document.getElementById("godisnjiIzlaz").textContent =
-            formatMoney(Number(g.porezi || 0) + Number(g.klijenti || 0) + Number(g.zaposleni || 0)) + " RSD";
-    }catch(error){
-        console.error(error);
-    }
-}
-
 loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     loginError.textContent = "";
@@ -70,20 +54,47 @@ api.onAuthChange((event) => {
     if(event === "SIGNED_OUT" && appStarted) showLogin();
 });
 
-window.logout = async function(){
-    await api.signOut();
-    location.reload();
-};
-window.loadDashboard = loadDashboard;
-
-// Ekrani iz 1.x koji se prenose u koraku M3/M4; do tada samo poruka.
-[
-    "openAddModal", "openTransactionModal", "openCardModal", "openReviewModal", "openReceiptModal",
-    "openDocumentsModal", "openNotesModal", "openObracunRModal", "openObracunKModal", "openInvoiceModal",
-    "toggleTheme"
-].forEach(name => {
-    if(!window[name]) window[name] = () => alert("Ovaj ekran se prenosi u sledećem koraku.");
+// Funkcije koje pozivaju onclick/onchange atributi u index.html.
+Object.assign(window, {
+    logout: async () => { await api.signOut(); location.reload(); },
+    loadDashboard,
+    toggleTheme,
+    openAddModal: partners.openAddModal,
+    closeAddModal: partners.closeAddModal,
+    handleAddTipChange: partners.handleAddTipChange,
+    selectAddEntity: partners.selectAddEntity,
+    saveEntity: partners.saveEntity,
+    openTransactionModal: transaction.openTransactionModal,
+    closeTransactionModal: transaction.closeTransactionModal,
+    fillEntityData: transaction.fillEntityData,
+    saveTransaction: transaction.saveTransaction,
+    newTransactionAfterSave: transaction.newTransactionAfterSave,
+    handleTransactionDocumentAction: transaction.handleTransactionDocumentAction,
+    openReviewModal: review.openReviewModal,
+    closeReviewModal: review.closeReviewModal,
+    loadReview: review.loadReview,
+    openCardModal: card.openCardModal,
+    closeCardModal: card.closeCardModal,
+    loadCardEntities: card.loadCardEntities,
+    loadCard: card.loadCard,
+    handleCardDocumentAction: card.handleCardDocumentAction,
+    openNotesModal: notes.openNotesModal,
+    closeNotesModal: notes.closeNotesModal,
+    handleNoteTypeChange: notes.handleNoteTypeChange,
+    resetNoteForm: notes.resetNoteForm,
+    saveNote: notes.saveNote
 });
+
+// Ekrani koji se prenose u koraku M4; do tada samo poruka.
+["openReceiptModal", "openDocumentsModal", "openObracunRModal", "openObracunKModal", "openInvoiceModal"].forEach(name => {
+    window[name] = () => alert("Ovaj ekran se prenosi u sledećem koraku (M4).");
+});
+
+initChrome();
+partners.initPartners();
+transaction.initTransaction();
+review.initReview();
+notes.initNotes();
 
 (async function init(){
     const session = await api.getSession();
