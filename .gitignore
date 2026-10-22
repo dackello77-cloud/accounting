@@ -1,0 +1,4 @@
+.env
+migration/input/
+migration/output/
+node_modules/
