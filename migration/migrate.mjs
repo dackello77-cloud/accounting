@@ -137,6 +137,14 @@ for(const { group, name } of corr.inactivePartners || []){
     corrApplied.push(`neaktivan partner ${group}: ${name}`);
 }
 
+// Partneri iz Sheet-a koje je vlasnik označio kao neaktivne (npr. probni unosi).
+for(const { group, name } of corr.deactivatePartners || []){
+    const p = partnerByKey[`${group}|${nameKey(name)}`];
+    if(!p){ warn(`corrections.json: "${name}" ne postoji u grupi ${group}`); continue; }
+    p.active = false;
+    corrApplied.push(`partner ${group}: ${name} → neaktivan`);
+}
+
 // partner_map.csv: grupa;stari naziv;šifra partnera (šifra postoji tek posle upisa, pa se ovde čuva samo veza)
 const partnerMap = {};
 const mapFile = join(INPUT, "partner_map.csv");
