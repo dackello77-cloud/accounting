@@ -17,11 +17,17 @@ function walk(dir, rel = ""){
 for(const bucket of readdirSync(root)){
     const files = walk(join(root, bucket));
     const queue = [...files];
-    await Promise.all(Array.from({ length: 6 }, async () => {
+    await Promise.all(Array.from({ length: 3 }, async () => {
         while(queue.length){
             const p = queue.shift();
-            const { error } = await sb.storage.from(bucket).upload(p, readFileSync(join(root, bucket, p)),
-                { contentType: MIME[extname(p).toLowerCase()] || "application/octet-stream", upsert: true });
+            // Mali (nano) projekat ume da odbije pri navali zahteva: ponovi sa pauzom.
+            let error;
+            for(let attempt = 1; attempt <= 6; attempt++){
+                ({ error } = await sb.storage.from(bucket).upload(p, readFileSync(join(root, bucket, p)),
+                    { contentType: MIME[extname(p).toLowerCase()] || "application/octet-stream", upsert: true }));
+                if(!error) break;
+                await new Promise(r => setTimeout(r, attempt * 2000));
+            }
             if(error) throw new Error(`${bucket}/${p}: ${error.message}`);
         }
     }));
