@@ -25,6 +25,12 @@ const money = (s) => Number(String(s).replace(/[^\d,-]/g, "").replace(",", "."))
 const ymd = (d) => d.toISOString().slice(0, 10);
 const yesterday = ymd(new Date(Date.now() - 86400000));
 
+// Ulaz/Porezi/Klijenti/Zaposleni su u podmeniju Transakcije.
+async function openTxMenu(type){
+    if(await page.isHidden(".menu .submenu")) await page.click(".menu-group-btn");
+    await page.click(`.menu .submenu button:text-is("${type}")`);
+}
+
 async function login(){
     await page.fill("#username", USER);
     await page.fill("#password", PASSWORD);
@@ -47,7 +53,7 @@ async function addPartner(tip, name, extra = {}){
 }
 
 async function addTransaction(type, partnerName, amount, date){
-    await page.click(`.menu button:text-is("${type}")`);
+    await openTxMenu(type);
     await page.waitForFunction(() => document.querySelectorAll("#transactionPartner option").length > 1);
     await page.selectOption("#transactionPartner", { label: partnerName });
     await page.fill("#transactionAmount", amount);
@@ -86,7 +92,7 @@ ok(d.some(m => /PIB mora imati 9 cifara/.test(m)), "PIB sa 3 cifre odbijen");
 await page.click("#addModal .close-btn");
 
 // Porezi: padajući meni ima samo partnere grupe Porezi
-await page.click('.menu button:text-is("Porezi")');
+await openTxMenu("Porezi");
 await page.waitForFunction(() => document.querySelectorAll("#transactionPartner option").length > 1);
 ok((await page.textContent("#transactionTitle")).includes("Porezi"), "naslov: Nova transakcija – Porezi");
 const porezOptions = await page.$$eval("#transactionPartner option", os => os.map(o => o.textContent));
@@ -170,7 +176,7 @@ ok(!(await page.textContent("#notesList")).includes("E2E podsetnik " + run), "No
 await page.click("#notesModal .close-btn");
 
 // Istek sesije preko otvorenog prozora: sadržaj ostaje
-await page.click('.menu button:text-is("Ulaz")');
+await openTxMenu("Ulaz");
 await page.waitForFunction(() => document.querySelectorAll("#transactionPartner option").length > 1);
 await page.fill("#transactionNotes", "Nesačuvan tekst " + run);
 await page.evaluate(async () => { const m = await import("./js/api.js"); await m.sb.auth.signOut({ scope: "local" }); });

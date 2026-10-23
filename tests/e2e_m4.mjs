@@ -22,6 +22,12 @@ page.on("dialog", d => d.accept());
 // PRINT otvara dijalog štampe u iframe-u; u testu ga gasimo.
 await context.addInitScript(() => { window.print = () => {}; HTMLIFrameElement.prototype.__noop = true; });
 
+// Ulaz/Porezi/Klijenti/Zaposleni su u podmeniju Transakcije.
+async function openTxMenu(type){
+    if(await page.isHidden(".menu .submenu")) await page.click(".menu-group-btn");
+    await page.click(`.menu .submenu button:text-is("${type}")`);
+}
+
 const statusOf = (id) => page.textContent("#" + id);
 async function waitStatus(id, re, timeout = 60000){
     await page.waitForFunction(([i, src]) => new RegExp(src).test(document.getElementById(i).textContent), [id, re.source], { timeout });
@@ -79,7 +85,7 @@ ok(/uspešno sačuvan/.test(await waitStatus("receiptMessage", /sačuvan|Greška
 await page.waitForTimeout(2500);
 
 // 2. Transakcija sa računom + SAVE PDF
-await page.click('.menu button:text-is("Ulaz")');
+await openTxMenu("Ulaz");
 await page.waitForFunction(() => document.querySelectorAll("#transactionPartner option").length > 1);
 await page.selectOption("#transactionPartner", { label: "Kupac Čačak " + run });
 await page.fill("#transactionAmount", "250.000,75");

@@ -382,6 +382,13 @@ body.light-theme .theme-icon-btn,body.light-theme .current-time-box{background:r
 .menu{flex:1}
 /* Fiksni meni na desktopu: kad je prozor niži od menija, meni se skroluje sam. */
 @media(min-width:901px){.sidebar{height:100vh;overflow-y:auto}}
+/* Transakcije: padajući podmeni (Ulaz, Porezi, Klijenti, Zaposleni) */
+.menu-group-btn{position:relative}
+.menu-group-btn::after{content:"▾";position:absolute;right:14px;transition:transform .15s}
+.menu-group-btn[aria-expanded="true"]::after{transform:rotate(180deg)}
+.submenu{padding-left:14px;border-left:2px solid #334155;margin:-4px 0 12px 8px}
+.submenu button{padding:10px 14px;margin-bottom:8px;font-size:14px}
+body.light-theme .submenu{border-left-color:#d7e8f5}
 .sidebar-reminders{margin-top:auto;background:#0f172a;border:1px solid #334155;border-radius:14px;padding:12px;max-height:230px;overflow:auto}
 .sidebar-reminders h3{font-size:14px;margin-bottom:8px;color:#e2e8f0}
 .reminder-alert-item{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:9px;margin-bottom:8px;font-size:12px;color:#e5e7eb}
@@ -539,10 +546,13 @@ body.light-theme #dashboard .menu .mobile-notes-button{
         <div class="menu">
             <button onclick="loadDashboard()">Dashboard</button>
             <button onclick="openAddModal()">Dodaj / Uredi</button>
-            <button onclick="openTransactionModal('ulaz')">Ulaz</button>
-            <button onclick="openTransactionModal('porezi')">Porezi</button>
-            <button onclick="openTransactionModal('klijenti')">Klijenti</button>
-            <button onclick="openTransactionModal('zaposleni')">Zaposleni</button>
+            <button class="menu-group-btn" aria-expanded="false" onclick="const open=this.getAttribute('aria-expanded')!=='true';this.setAttribute('aria-expanded',open);this.nextElementSibling.hidden=!open">Transakcije</button>
+            <div class="submenu" hidden>
+                <button onclick="openTransactionModal('ulaz')">Ulaz</button>
+                <button onclick="openTransactionModal('porezi')">Porezi</button>
+                <button onclick="openTransactionModal('klijenti')">Klijenti</button>
+                <button onclick="openTransactionModal('zaposleni')">Zaposleni</button>
+            </div>
             <button onclick="openCardModal()">Kartica</button>
             <button onclick="openReviewModal()">Pregled</button>
             <button onclick="openReceiptModal()">Sačuvaj račun</button>
