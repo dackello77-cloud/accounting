@@ -28,7 +28,7 @@ export async function loadDashboard(){
                 <td><span class="badge b-${escapeHtml(t.type)}">${escapeHtml(TYPE_LABELS[t.type] || t.type)}</span></td>
                 <td class="strong">${escapeHtml(t.partner_name)}</td>
                 <td class="muted">${escapeHtml(t.invoice_number)}</td>
-                <td class="num ${t.type === "ulaz" ? "pos" : "neg"}">${t.type === "ulaz" ? "+" : "−"}${formatMoney(t.amount)}</td>
+                <td class="num ${t.type === "ulaz" ? "pos" : "neg"}">${Number(t.amount) === 0 ? "" : t.type === "ulaz" ? "+" : "−"}${formatMoney(t.amount)}</td>
             </tr>`).join("");
     }catch(error){
         console.error(error);
@@ -46,27 +46,39 @@ function updateYearChart(income, tax, clients, staff){
     });
 }
 
+// Podsetnici idu u meni (telefon) i u desnu kolonu Dashboard-a.
 export async function loadReminderAlerts(){
-    const box = $("sidebarReminderAlerts");
-    if(!box) return;
+    const boxes = ["sidebarReminderAlerts", "sideReminderAlerts"].map($).filter(Boolean);
+    if(!boxes.length) return;
+    loadPendingReceipts();
     try{
         const reminders = await api.reminderAlerts();
-        if(!reminders.length){
-            box.className = "reminder-empty";
-            box.textContent = "Nema podsetnika za 24h.";
-            return;
-        }
-        box.className = "";
-        box.innerHTML = reminders.map(r => `
-            <div class="reminder-alert-item" onclick="openNotesModal()">
-                <strong>${escapeHtml(r.title || "Podsetnik")}</strong>
-                <span>${escapeHtml(formatDateTime(r.remind_at))}</span>
-                <div>${escapeHtml((r.body || "").slice(0, 80))}</div>
-            </div>
-        `).join("");
+        boxes.forEach(box => fillReminders(box, reminders));
     }catch(error){
-        box.textContent = "Greška pri učitavanju.";
+        boxes.forEach(box => { box.textContent = "Greška pri učitavanju."; });
     }
+}
+
+async function loadPendingReceipts(){
+    const el = $("pendingReceipts");
+    if(!el) return;
+    try{ el.textContent = (await api.listInboxReceipts()).length; }catch{ el.textContent = "–"; }
+}
+
+function fillReminders(box, reminders){
+    if(!reminders.length){
+        box.className = "reminder-empty";
+        box.textContent = "Nema podsetnika za 24h.";
+        return;
+    }
+    box.className = "";
+    box.innerHTML = reminders.map(r => `
+        <div class="reminder-alert-item" onclick="openNotesModal()">
+            <strong>${escapeHtml(r.title || "Podsetnik")}</strong>
+            <span>${escapeHtml(formatDateTime(r.remind_at))}</span>
+            <div>${escapeHtml((r.body || "").slice(0, 80))}</div>
+        </div>
+    `).join("");
 }
 
 function applyTheme(theme){

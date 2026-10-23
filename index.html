@@ -656,6 +656,36 @@ body:not(.light-theme) #dashboard .sidebar-logo{background:#fff;border-radius:8p
 #dashboard .menu .mobile-notes-button{display:flex;justify-content:center;color:#fff;background:#2563eb}
 #dashboard .sidebar{background:var(--surface)}
 }
+
+/* Desna kolona Dashboard-a */
+#dashboard .main{max-width:none}
+#dashboard .dash-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+#dashboard .dash-main>.panel:first-of-type{margin-top:16px}
+#dashboard .dash-side{display:grid;gap:16px}
+#dashboard .dash-side .panel{margin-top:0}
+#dashboard .side-panel h2{font-size:15px;font-weight:600;margin-bottom:12px}
+#dashboard .side-head{display:flex;justify-content:space-between;align-items:baseline}
+#dashboard .side-head .link-btn{font-size:13px}
+#dashboard .quick-actions{display:grid;gap:6px}
+#dashboard .quick-actions button{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font-size:14px;font-weight:500;text-align:left}
+#dashboard .quick-actions button:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 7%,var(--surface))}
+#dashboard .qa-dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--muted)}
+#dashboard .qa-dot.b-ulaz{background:var(--t-ulaz)}#dashboard .qa-dot.b-klijenti{background:var(--t-klijenti)}
+#dashboard .qa-dot.b-zaposleni{background:var(--t-zaposleni)}#dashboard .qa-dot.b-porezi{background:var(--t-porezi)}
+#dashboard .qa-dot.b-faktura{background:#dc2626}#dashboard .qa-dot.b-racun{background:var(--muted)}
+#dashboard #sideReminderAlerts{display:grid;gap:8px}
+#dashboard #sideReminderAlerts .reminder-alert-item{margin:0;background:var(--surface-2);border:1px solid var(--border);border-radius:9px}
+#dashboard .pending-count{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
+#dashboard .pending-count strong{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums}
+#dashboard .pending-count span{font-size:13px;color:var(--muted);line-height:1.35}
+#dashboard .side-btn{width:100%;padding:10px;border:0;border-radius:9px;background:var(--accent);color:#fff;font-weight:600;font-size:14px}
+#dashboard .side-btn:hover{filter:brightness(1.08)}
+@media(min-width:601px){#dashboard .sidebar-reminders{display:none}}
+@media(max-width:1499px){#dashboard .dash-grid{grid-template-columns:minmax(0,1fr) 260px}}
+@media(max-width:1199px){
+#dashboard .dash-grid{grid-template-columns:minmax(0,1fr)}
+#dashboard .dash-side{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+}
 </style>
 </head>
 
@@ -730,59 +760,85 @@ body:not(.light-theme) #dashboard .sidebar-logo{background:#fff;border-radius:8p
             </div>
         </header>
 
-        <section class="kpi-row">
-            <div class="kpi kpi-hero">
-                <div class="kpi-label">Trenutno stanje</div>
-                <div class="kpi-value" id="stanje">0 RSD</div>
-                <div class="kpi-foot">Ukupan ulaz − ukupan izlaz</div>
-            </div>
-            <div class="kpi">
-                <div class="kpi-label"><i class="dot pos"></i>Ukupan ulaz</div>
-                <div class="kpi-value" id="ulaz">0 RSD</div>
-                <div class="kpi-foot">Sve aktivne transakcije</div>
-            </div>
-            <div class="kpi">
-                <div class="kpi-label"><i class="dot neg"></i>Ukupan izlaz</div>
-                <div class="kpi-value" id="izlaz">0 RSD</div>
-                <div class="kpi-foot">Porezi, klijenti i zaposleni</div>
-            </div>
-        </section>
-
-        <section class="panel year-panel">
-            <div class="panel-head">
-                <div>
-                    <h2>Godišnji prikaz <span id="yearLabel"></span></h2>
-                    <p>Prihodi i rashodi po kategorijama u tekućoj godini.</p>
+        <div class="dash-grid">
+            <div class="dash-main">
+            <section class="kpi-row">
+                <div class="kpi kpi-hero">
+                    <div class="kpi-label">Trenutno stanje</div>
+                    <div class="kpi-value" id="stanje">0 RSD</div>
+                    <div class="kpi-foot">Ukupan ulaz − ukupan izlaz</div>
                 </div>
-                <div class="year-totals">
-                    <div><span>Prihodi</span><strong class="pos" id="godisnjiUlaz">0 RSD</strong></div>
-                    <div><span>Rashodi</span><strong class="neg" id="godisnjiIzlaz">0 RSD</strong></div>
+                <div class="kpi">
+                    <div class="kpi-label"><i class="dot pos"></i>Ukupan ulaz</div>
+                    <div class="kpi-value" id="ulaz">0 RSD</div>
+                    <div class="kpi-foot">Sve aktivne transakcije</div>
                 </div>
-            </div>
-            <div class="bars">
-                <div class="bar-row"><span class="bar-name">Prihodi</span><div class="bar"><span id="yearChartIncome" class="b-ulaz"></span></div><span class="bar-val" id="yearChartIncomeVal">0 RSD</span></div>
-                <div class="bar-row"><span class="bar-name">Porezi</span><div class="bar"><span id="yearChartTax" class="b-porezi"></span></div><span class="bar-val" id="yearChartTaxVal">0 RSD</span></div>
-                <div class="bar-row"><span class="bar-name">Klijenti</span><div class="bar"><span id="yearChartClient" class="b-klijenti"></span></div><span class="bar-val" id="yearChartClientVal">0 RSD</span></div>
-                <div class="bar-row"><span class="bar-name">Zaposleni</span><div class="bar"><span id="yearChartStaff" class="b-zaposleni"></span></div><span class="bar-val" id="yearChartStaffVal">0 RSD</span></div>
-            </div>
-        </section>
+                <div class="kpi">
+                    <div class="kpi-label"><i class="dot neg"></i>Ukupan izlaz</div>
+                    <div class="kpi-value" id="izlaz">0 RSD</div>
+                    <div class="kpi-foot">Porezi, klijenti i zaposleni</div>
+                </div>
+            </section>
 
-        <section class="panel">
-            <div class="panel-head">
-                <div><h2>Poslednje transakcije</h2><p>20 poslednjih unosa</p></div>
-                <button class="link-btn" onclick="openReviewModal()">Prikaži sve →</button>
+            <section class="panel year-panel">
+                <div class="panel-head">
+                    <div>
+                        <h2>Godišnji prikaz <span id="yearLabel"></span></h2>
+                        <p>Prihodi i rashodi po kategorijama u tekućoj godini.</p>
+                    </div>
+                    <div class="year-totals">
+                        <div><span>Prihodi</span><strong class="pos" id="godisnjiUlaz">0 RSD</strong></div>
+                        <div><span>Rashodi</span><strong class="neg" id="godisnjiIzlaz">0 RSD</strong></div>
+                    </div>
+                </div>
+                <div class="bars">
+                    <div class="bar-row"><span class="bar-name">Prihodi</span><div class="bar"><span id="yearChartIncome" class="b-ulaz"></span></div><span class="bar-val" id="yearChartIncomeVal">0 RSD</span></div>
+                    <div class="bar-row"><span class="bar-name">Porezi</span><div class="bar"><span id="yearChartTax" class="b-porezi"></span></div><span class="bar-val" id="yearChartTaxVal">0 RSD</span></div>
+                    <div class="bar-row"><span class="bar-name">Klijenti</span><div class="bar"><span id="yearChartClient" class="b-klijenti"></span></div><span class="bar-val" id="yearChartClientVal">0 RSD</span></div>
+                    <div class="bar-row"><span class="bar-name">Zaposleni</span><div class="bar"><span id="yearChartStaff" class="b-zaposleni"></span></div><span class="bar-val" id="yearChartStaffVal">0 RSD</span></div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head">
+                    <div><h2>Poslednje transakcije</h2><p>20 poslednjih unosa</p></div>
+                    <button class="link-btn" onclick="openReviewModal()">Prikaži sve →</button>
+                </div>
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>Datum</th><th>Tip</th><th>Naziv</th><th>Faktura</th><th class="num">Iznos</th></tr>
+                        </thead>
+                        <tbody id="transactionsTable">
+                            <tr><td colspan="5" class="empty">Nema transakcija</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
             </div>
-            <div class="table-wrap">
-                <table class="data-table">
-                    <thead>
-                        <tr><th>Datum</th><th>Tip</th><th>Naziv</th><th>Faktura</th><th class="num">Iznos</th></tr>
-                    </thead>
-                    <tbody id="transactionsTable">
-                        <tr><td colspan="5" class="empty">Nema transakcija</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
+            <aside class="dash-side">
+                <section class="panel side-panel">
+                    <h2>Brzi unos</h2>
+                    <div class="quick-actions">
+                        <button onclick="openTransactionModal('ulaz')"><i class="qa-dot b-ulaz"></i>Novi ulaz</button>
+                        <button onclick="openTransactionModal('klijenti')"><i class="qa-dot b-klijenti"></i>Plaćanje klijentu</button>
+                        <button onclick="openTransactionModal('zaposleni')"><i class="qa-dot b-zaposleni"></i>Isplata zaposlenom</button>
+                        <button onclick="openTransactionModal('porezi')"><i class="qa-dot b-porezi"></i>Porez</button>
+                        <button onclick="openInvoiceModal()"><i class="qa-dot b-faktura"></i>Nova faktura</button>
+                        <button onclick="openReceiptModal()"><i class="qa-dot b-racun"></i>Sačuvaj račun</button>
+                    </div>
+                </section>
+                <section class="panel side-panel">
+                    <div class="side-head"><h2>Podsetnici</h2><button class="link-btn" onclick="openNotesModal()">Notes →</button></div>
+                    <div id="sideReminderAlerts" class="reminder-empty">Nema podsetnika za 24h.</div>
+                </section>
+                <section class="panel side-panel pending-panel">
+                    <h2>Računi na čekanju</h2>
+                    <div class="pending-count"><strong id="pendingReceipts">–</strong><span>čeka povezivanje sa transakcijom</span></div>
+                    <button class="side-btn" onclick="openReceiptModal()">Otvori račune</button>
+                </section>
+            </aside>
+        </div>
     </div>
 </div>
 
