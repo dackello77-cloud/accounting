@@ -6,7 +6,9 @@ const $ = (id) => document.getElementById(id);
 
 export async function loadDashboard(){
     try{
-        const data = await api.dashboardSummary(Number(new Date().toLocaleString("en-US", { timeZone: "Europe/Belgrade", year: "numeric" })));
+        const year = Number(new Date().toLocaleString("en-US", { timeZone: "Europe/Belgrade", year: "numeric" }));
+        $("yearLabel").textContent = year;
+        const data = await api.dashboardSummary(year);
         if(!data) return;
         $("stanje").textContent = formatMoney(data.stanje) + " RSD";
         $("ulaz").textContent = formatMoney(data.ulaz) + " RSD";
@@ -20,8 +22,14 @@ export async function loadDashboard(){
 
         const rows = data.poslednje || [];
         $("transactionsTable").innerHTML = rows.length === 0
-            ? `<tr><td colspan="5">Nema transakcija</td></tr>`
-            : rows.map(t => `<tr><td>${formatDate(t.tx_date)}</td><td>${escapeHtml(TYPE_LABELS[t.type] || t.type)}</td><td>${escapeHtml(t.partner_name)}</td><td>${escapeHtml(t.invoice_number)}</td><td class="${t.type === "ulaz" ? "green" : "red"}">${formatMoney(t.amount)}</td></tr>`).join("");
+            ? `<tr><td colspan="5" class="empty">Nema transakcija</td></tr>`
+            : rows.map(t => `<tr>
+                <td class="muted nowrap">${formatDate(t.tx_date)}</td>
+                <td><span class="badge b-${escapeHtml(t.type)}">${escapeHtml(TYPE_LABELS[t.type] || t.type)}</span></td>
+                <td class="strong">${escapeHtml(t.partner_name)}</td>
+                <td class="muted">${escapeHtml(t.invoice_number)}</td>
+                <td class="num ${t.type === "ulaz" ? "pos" : "neg"}">${t.type === "ulaz" ? "+" : "−"}${formatMoney(t.amount)}</td>
+            </tr>`).join("");
     }catch(error){
         console.error(error);
         alert("Greška pri učitavanju podataka");
@@ -80,6 +88,11 @@ export function toggleTheme(){
 
 export function initChrome(){
     applyTheme(readTheme());
+    const today = $("todayLabel");
+    if(today){
+        const label = new Date().toLocaleDateString("sr-Latn-RS", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Belgrade" });
+        today.textContent = label.charAt(0).toUpperCase() + label.slice(1);
+    }
     const tick = () => {
         const el = $("currentTimeBox");
         if(el) el.textContent = new Date().toLocaleTimeString("sr-RS", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Belgrade" });

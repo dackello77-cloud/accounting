@@ -11,6 +11,7 @@ import * as documents from "./documents.js";
 import * as obracunR from "./obracun_r.js";
 import * as obracunK from "./obracun_k.js";
 import * as invoice from "./invoice.js";
+import { initViewer } from "./viewer.js";
 
 const loginPage = document.getElementById("loginPage");
 const loginForm = document.getElementById("loginForm");
@@ -143,6 +144,7 @@ transaction.initTransaction();
 review.initReview();
 notes.initNotes();
 documents.initDocuments();
+initViewer();
 
 (async function init(){
     const session = await api.getSession();

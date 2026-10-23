@@ -3,6 +3,7 @@ import * as api from "./api.js";
 import { escapeHtml, formatDateTime, errorMessage, showModal, hideModal } from "./util.js";
 import { CATEGORIES, storageKey, shortId, checkUploadFile, contentTypeOf } from "./files.js";
 import { openStorageFile } from "./docsave.js";
+import { openViewer } from "./viewer.js";
 import { receiptDisplayName } from "./receipts.js";
 
 const $ = (id) => document.getElementById(id);
@@ -47,7 +48,7 @@ async function loadFiles(){
         }
         list.innerHTML = files.length === 0 ? `<tr><td colspan="3">Nema dokumenata</td></tr>`
             : files.map((f, i) => `<tr>
-                <td>${escapeHtml(f.name)}${f.note ? `<div class="doc-note">${escapeHtml(f.note)}</div>` : ""}</td>
+                <td><button class="doc-name-btn" data-open="${i}">${escapeHtml(f.name)}</button>${f.note ? `<div class="doc-note">${escapeHtml(f.note)}</div>` : ""}</td>
                 <td>${escapeHtml(formatDateTime(f.at))}</td>
                 <td class="doc-actions"><button data-open="${i}">Otvori</button><button data-download="${i}">Preuzmi</button></td>
             </tr>`).join("");
@@ -89,10 +90,12 @@ export function initDocuments(){
     $("documentsList").addEventListener("click", async (event) => {
         const open = event.target.closest("button[data-open]");
         const download = event.target.closest("button[data-download]");
-        const f = files[Number((open || download)?.dataset.open ?? (open || download)?.dataset.download)];
+        const i = Number((open || download)?.dataset.open ?? (open || download)?.dataset.download);
+        const f = files[i];
         if(!f) return;
+        if(open){ openViewer(files, i); return; }
         try{
-            await openStorageFile(f.bucket, f.path, download ? f.name : undefined);
+            await openStorageFile(f.bucket, f.path, f.name);
         }catch(error){
             $("documentsStatus").textContent = errorMessage(error, "Fajl nije moguće otvoriti.");
         }
