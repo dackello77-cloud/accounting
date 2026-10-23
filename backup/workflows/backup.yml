@@ -46,9 +46,13 @@ jobs:
           pg_dump "$DB_URL" -Fc --no-owner --no-privileges --schema=public -f "out/public-$stamp.dump"
           pg_dump "$DB_URL" -Fc --no-owner --no-privileges --data-only \
             --table=auth.users --table=auth.identities -f "out/auth-$stamp.dump"
-          # Brza provera: dump mora da sadrži glavne tabele.
-          pg_restore -l "out/public-$stamp.dump" | grep -q "TABLE DATA public transactions"
           ls -la out
+          # Brza provera: dump mora da sadrži glavne tabele.
+          pg_restore -l "out/public-$stamp.dump" > out/list.txt
+          echo "Tabele sa podacima: $(grep -c 'TABLE DATA' out/list.txt || true)"
+          grep 'TABLE DATA' out/list.txt | head -30 || true
+          grep -q 'TABLE DATA public transactions' out/list.txt
+          rm out/list.txt
 
       - name: Šifrovanje
         env:
