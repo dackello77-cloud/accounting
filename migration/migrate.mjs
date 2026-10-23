@@ -121,7 +121,7 @@ for(const [sheet, group] of Object.entries(GROUPS)){
             mergedDuplicates.push(`${sheet} red ${line}: "${name}" spojen sa "${p.name}"`);
             continue;
         }
-        const p = { id: randomUUID(), group_type: group, name, address: str(r[1]) || null, country: "RS", bank_account: str(r[2]) || null };
+        const p = { id: randomUUID(), group_type: group, name, address: str(r[1]) || null, country: "RS", bank_account: str(r[2]) || null, active: true };
         partners.push(p);
         partnerByKey[k] = p;
     }
@@ -280,7 +280,7 @@ function readPayroll(sheet, hasRate){
         if(byPeriod[key]) dropped++;
         byPeriod[key] = {
             fileName: str(r[hasRate ? 7 : 6]) || null, pdfRef: str(r[hasRate ? 6 : 5]),
-            row: { id: randomUUID(), month, year, ...(hasRate ? { usd_rate: rate } : {}), data, created_at: timestampIso(r[0]) || undefined }
+            row: { id: randomUUID(), month, year, ...(hasRate ? { usd_rate: rate } : {}), data, created_at: timestampIso(r[0]) || new Date().toISOString() }
         };
     }
     return { items: Object.values(byPeriod), dropped };
@@ -307,7 +307,7 @@ const notes = readSheet(wb, "Notes").map(({ r }) => ({
     title: str(r[3]) || null, body: str(r[4]) || null,
     remind_at: timestampIso(r[5]),
     status: str(r[6]).toUpperCase() === "DELETED" ? "deleted" : "active",
-    created_at: timestampIso(r[1]) || undefined
+    created_at: timestampIso(r[1]) || new Date().toISOString()
 }));
 
 // ---------- Zbirovi iz Sheet-a ----------
