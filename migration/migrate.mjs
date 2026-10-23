@@ -7,7 +7,7 @@
 //
 // Ulaz: input/*.xlsx (tačno jedan), opciono input/partner_map.csv (grupa;stari naziv;šifra partnera)
 // i input/corrections.json (ispravke vlasnika: datumi i valute faktura, nazivi kompanija, neaktivni partneri).
-import { readFileSync, readdirSync, existsSync, mkdirSync, writeFileSync } from "fs";
+import { readFileSync, readdirSync, existsSync, mkdirSync, writeFileSync, statSync } from "fs";
 import { randomUUID } from "crypto";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
@@ -310,6 +310,150 @@ const notes = readSheet(wb, "Notes").map(({ r }) => ({
     created_at: timestampIso(r[1]) || new Date().toISOString()
 }));
 
+// ---------- Fajlovi sa Drive-a (input/drive, raspakovan zip) ----------
+
+const DRIVE = join(INPUT, "drive");
+const MIME = { ".pdf": "application/pdf", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".heic": "image/heic", ".heif": "image/heif" };
+const MAX_FILE = 15 * 1024 * 1024;
+// Prvi deo putanje u Drive folderu → kategorija u 2.0 (redosled: specifičnije prvo).
+const FOLDERS = [
+    [/^2\. RACUNI ?\/PRISTIGLI\//i, "receipt_inbox"],
+    [/^2\. RACUNI ?\/PLACENI\//i, "receipt_paid"],
+    [/^3\. IZVODI - DINARSKI\//i, "izvodi_dinarski"],
+    [/^4\. IZVODI DEVIZNI\//i, "izvodi_devizni"],
+    [/^5\. FAKTURE\//i, "fakture"],
+    [/^6\. SACUVANO\//i, "transakcije"],
+    [/^7 KARTICE\//i, "kartice"],
+    [/^OBRACUN - RACUN\//i, "obracun_r"],
+    [/^OBRACUN - KES\//i, "obracun_k"]
+];
+const STORE = {
+    transakcije: ["documents", "transakcije"], kartice: ["documents", "kartice"], fakture: ["documents", "fakture"],
+    obracun_r: ["documents", "obracun-r"], obracun_k: ["documents", "obracun-k"],
+    izvodi_dinarski: ["statements", "dinarski"], izvodi_devizni: ["statements", "devizni"], racuni: ["receipts", "arhiva"]
+};
+// Isto kao storageKey u js/files.js: Storage prima samo ASCII.
+const TRANSLIT = { č:"c", ć:"c", š:"s", đ:"dj", ž:"z", Č:"C", Ć:"C", Š:"S", Đ:"Dj", Ž:"Z" };
+const storageKey = (name) => String(name || "fajl").replace(/[čćšđžČĆŠĐŽ]/g, ch => TRANSLIT[ch])
+    .normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w/!\-.*'() &$@=;:+,]/g, "-").replace(/\s+/g, " ").trim() || "fajl";
+const shortId = () => randomUUID().slice(0, 8);
+const firstWordKey = (v) => str(v).split(/\s+/)[0].replace(/[\\/?%*:|"<>]/g, "-").toUpperCase();
+const stripCopy = (base) => base.replace(/\(\d+\)$/, "").trim();
+
+function walkFiles(dir, rel = ""){
+    const out = [];
+    for(const e of readdirSync(dir, { withFileTypes: true })){
+        if(e.name.startsWith(".")) continue;
+        const r = rel ? `${rel}/${e.name}` : e.name;
+        if(e.isDirectory()) out.push(...walkFiles(join(dir, e.name), r));
+        else out.push(r);
+    }
+    return out;
+}
+
+// Ime 1.x dokumenta "datum - Prva reč imena - Broj fakture" → transakcija (jedinstveno poklapanje, inače datum odlučuje).
+const txByWordInvoice = {};
+for(const t of transactions){
+    const k = `${firstWordKey(t.partner_name)}|${(t.invoice_number || "BEZ-FAKTURE").replace(/[\\/?%*:|"<>]/g, "-").toUpperCase()}`;
+    (txByWordInvoice[k] ||= []).push(t);
+}
+function matchTransaction(base){
+    const m = base.match(/^(\d{2})-(\d{2})-(\d{4}) - (.+?) - (.+)$/);
+    if(!m) return null;
+    const cands = txByWordInvoice[`${m[4].toUpperCase()}|${stripCopy(m[5]).toUpperCase()}`] || [];
+    if(cands.length === 1) return cands[0];
+    const dates = [`${m[3]}-${m[1]}-${m[2]}`, `${m[3]}-${m[2]}-${m[1]}`];
+    const byDate = cands.filter(t => dates.includes(t.tx_date));
+    return byDate.length === 1 ? byDate[0] : null;
+}
+
+const files = { uploads: [], skipped: [], tooBig: [], linked: { transakcije: 0, racuni: 0, fakture: 0, obracun_r: 0, obracun_k: 0 }, totalBytes: 0, byCategory: {} };
+if(existsSync(DRIVE)){
+    // Zip sa Drive-a ima jedan koreni folder (npr. KNJIGOVOTSVO/); putanje se gledaju od njega.
+    const top = readdirSync(DRIVE, { withFileTypes: true }).filter(e => !e.name.startsWith("."));
+    const root = top.length === 1 && top[0].isDirectory() ? join(DRIVE, top[0].name) : DRIVE;
+    const all = walkFiles(root).map(rel => {
+        const abs = join(root, rel), st = statSync(abs);
+        return { rel: rel.normalize("NFC"), abs, size: st.size, mtime: st.mtime.toISOString() };
+    });
+
+    // Fakture i obračuni: Sheet FILE_NAME (ili Invoice_NNN_YYYY) ↔ fajl; od kopija "(1)" pobeđuje najnoviji.
+    // Prednost ima fajl u korenu foldera (tamo ga je čuvala 1.x), zatim podfolderi (npr. 5. FAKTURE/2026).
+    const depth = (f) => f.rel.split("/").length;
+    const newest = (list) => list.sort((a, b) => depth(a) - depth(b) || b.mtime.localeCompare(a.mtime))[0];
+    const fileFor = (category, wanted) => {
+        const want = stripCopy(wanted.replace(/\.pdf$/i, "")).toLowerCase();
+        return newest(all.filter(f => f.category === category && f.ext === ".pdf" && !f.linkInvoice && !f.linkPayroll
+            && stripCopy(f.base).toLowerCase() === want));
+    };
+
+    for(const f of all){
+        const hit = FOLDERS.find(([re]) => re.test(f.rel));
+        const ext = (f.rel.match(/\.[A-Za-z0-9]+$/) || [""])[0].toLowerCase();
+        if(!hit){ files.skipped.push(`${f.rel} (folder nije mapiran)`); continue; }
+        if(ext === ".txt"){ continue; }
+        if(/\/Logo\//i.test(f.rel)){ files.skipped.push(`${f.rel} (logo, nije dokument)`); continue; }                             // probni fajlovi 1.x ("authorization-test…")
+        if(!MIME[ext]){ files.skipped.push(`${f.rel} (tip ${ext || "?"} se ne prenosi, ostaje na Drive-u)`); continue; }
+        if(f.size > MAX_FILE){ files.tooBig.push(`${f.rel} (${(f.size / 1048576).toFixed(1)} MB)`); continue; }
+        f.category = hit[1];
+        f.mime = MIME[ext];
+        f.name = f.rel.split("/").pop();
+        f.base = f.name.replace(/\.[^.]+$/, "");
+        f.ext = ext;
+    }
+    const usable = all.filter(f => f.category);
+
+    for(const inv of invoices){
+        const name = inv.fileName || `Invoice_${inv.row.number.replace("/", "_")}.pdf`;
+        const f = fileFor("fakture", name);
+        if(f){ f.linkInvoice = inv.row; files.linked.fakture++; }
+    }
+    for(const [list, cat] of [[payrollR.items, "obracun_r"], [payrollK.items, "obracun_k"]]){
+        for(const p of list){
+            const f = p.fileName && fileFor(cat, p.fileName);
+            if(f){ f.linkPayroll = p.row; files.linked[cat]++; }
+        }
+    }
+
+    for(const f of usable){
+        const key = storageKey(f.name);
+        const add = (bucket, path, extra) => files.uploads.push({ ...f, bucket, path, ...extra });
+        if(f.category === "receipt_inbox"){
+            add("receipts", `inbox/${shortId()}/${key}`, { receipt: { transaction_id: null } });
+        }else if(f.category === "receipt_paid"){
+            const t = matchTransaction(f.base);
+            if(t){ files.linked.racuni++; add("receipts", `transactions/${t.id}/${key}`, { receipt: { transaction_id: t.id } }); }
+            else add("receipts", `arhiva/${shortId()}/${key}`, { document: "racuni" });
+        }else if(f.category === "transakcije"){
+            const t = matchTransaction(f.base);
+            if(t && !t.document_path){
+                files.linked.transakcije++;
+                t.document_path = `transakcije/${t.id}/${key}`;
+                add("documents", t.document_path, { document: "transakcije" });
+            }else add("documents", `transakcije/${shortId()}/${key}`, { document: "transakcije" });
+        }else if(f.linkInvoice){
+            f.linkInvoice.pdf_path = `fakture/${key}`;
+            add("documents", f.linkInvoice.pdf_path, { document: "fakture" });
+        }else if(f.linkPayroll){
+            f.linkPayroll.pdf_path = `${STORE[f.category][1]}/${key}`;
+            add("documents", f.linkPayroll.pdf_path, { document: f.category });
+        }else{
+            // Ostalo: zadržava podfolder sa Drive-a (npr. izvodi po godinama), shortId sprečava sudar kopija.
+            const [bucket, folder] = STORE[f.category];
+            const sub = f.rel.split("/").slice(f.category.startsWith("izvodi") || f.category === "fakture" ? 1 : 99, -1).map(storageKey);
+            add(bucket, [folder, ...sub, shortId(), key].join("/"), { document: f.category });
+        }
+    }
+    const seenPaths = new Set();
+    for(const u of files.uploads){
+        if(seenPaths.has(`${u.bucket}/${u.path}`)) u.path = u.path.replace(/\/([^/]+)$/, `/${shortId()}-$1`);
+        seenPaths.add(`${u.bucket}/${u.path}`);
+        files.totalBytes += u.size;
+        const c = u.receipt ? (u.receipt.transaction_id ? "računi uz transakcije" : "računi na čekanju") : u.document;
+        files.byCategory[c] = (files.byCategory[c] || 0) + 1;
+    }
+}
+
 // ---------- Zbirovi iz Sheet-a ----------
 
 function txTotals(list){
@@ -406,6 +550,7 @@ async function writeToDb(){
     await insert("payroll_k", payrollK.items.map(i => i.row));
     await insert("email_recipients", emailRecipients);
     await insert("notes", notes);
+    if(files.uploads.length) await uploadFiles(sb);
 
     // Provera: zbirovi iz baze
     const dbTx = [];
@@ -419,6 +564,35 @@ async function writeToDb(){
     const same = (a, b) => [...new Set([...Object.keys(a), ...Object.keys(b)])].every(k => (a[k] || 0) === (b[k] || 0));
     return { ok: same(sheetTx, dbTxT) && same(sheetInv, dbInvT) && dbTx.length === transactions.length,
         dbTxT, dbInvT, dbTxCount: dbTx.length, dbInvCount: dbInv.length };
+}
+
+async function uploadFiles(sb){
+    console.log(`Fajlovi: ${files.uploads.length} (${(files.totalBytes / 1048576).toFixed(1)} MB)…`);
+    const docs = [], receipts = [];
+    let done = 0;
+    const queue = [...files.uploads];
+    async function worker(){
+        while(queue.length){
+            const u = queue.shift();
+            let error;
+            for(let attempt = 0; attempt < 3; attempt++){
+                ({ error } = await sb.storage.from(u.bucket).upload(u.path, readFileSync(u.abs), { contentType: u.mime, upsert: false }));
+                if(!error) break;
+            }
+            if(error) fail(`upload ${u.rel}: ${error.message}`);
+            if(u.receipt) receipts.push({ storage_path: u.path, original_name: u.name, transaction_id: u.receipt.transaction_id, uploaded_at: u.mtime });
+            else docs.push({ category: u.document, storage_path: u.path, file_name: u.name, created_at: u.mtime });
+            if(++done % 50 === 0) console.log(`  ${done}/${files.uploads.length}`);
+        }
+    }
+    await Promise.all(Array.from({ length: 6 }, worker));
+    for(const [table, rows] of [["documents", docs], ["receipts", receipts]]){
+        for(let i = 0; i < rows.length; i += 200){
+            const { error } = await sb.from(table).insert(rows.slice(i, i + 200));
+            if(error) fail(`upis ${table}: ${error.message}`);
+        }
+        console.log(`  ${table}: ${rows.length}`);
+    }
 }
 
 async function emptyBucket(sb, bucket){
@@ -507,7 +681,19 @@ function writeReport(){
         L.push(`| ${line} | ${sheetDate} / ${str(r[2])} / ${str(r[3]).replace(/\|/g, "/")} / ${str(r[7])} / ${str(r[9])} | ${t ? `${t.tx_date} / ${t.type} / ${t.partner_id ? "partner ✓" : "bez partnera"} / ${money(cents(t.amount))} / ${t.status}` : "—"} |`);
     }
 
-    L.push(``, `## Fajlovi sa Drive-a`, ``, existsSync(join(INPUT, "drive")) ? "Folder `input/drive` postoji; prenos fajlova još nije uključen u skriptu." : "Folder `input/drive` ne postoji — fajlovi još nisu preneti (fakture i obračuni prelaze bez PDF-a).");
+    L.push(``, `## Fajlovi sa Drive-a`, ``);
+    if(!existsSync(DRIVE)) L.push("Folder `input/drive` ne postoji — fajlovi se ne prenose (fakture i obračuni prelaze bez PDF-a).");
+    else{
+        const mb = files.totalBytes / 1048576;
+        L.push(`- Prenosi se: **${files.uploads.length} fajlova, ${mb.toFixed(1)} MB** (limit besplatnog plana 1 GB${mb > 800 ? " — ⚠️ preko 800 MB" : ""})`);
+        for(const [c, n] of Object.entries(files.byCategory).sort()) L.push(`  - ${c}: ${n}`);
+        L.push(`- Povezano: ${files.linked.fakture}/${invoices.length} faktura, ${files.linked.obracun_r}/${payrollR.items.length} obračuna R, ${files.linked.obracun_k}/${payrollK.items.length} obračuna K, ${files.linked.transakcije} dokumenata transakcija, ${files.linked.racuni} računa uz transakcije`);
+        const noPdf = [...invoices.filter(i => !i.row.pdf_path).map(i => `faktura ${i.row.number}`),
+            ...payrollR.items.filter(p => !p.row.pdf_path).map(p => `obračun R ${MONTHS[p.row.month - 1]} ${p.row.year}`),
+            ...payrollK.items.filter(p => !p.row.pdf_path).map(p => `obračun K ${MONTHS[p.row.month - 1]} ${p.row.year}`)];
+        list("Bez PDF-a (fajl nije nađen u zip-u)", noPdf);
+        list("Ne prenosi se (ostaje na Drive-u)", [...files.skipped, ...files.tooBig.map(x => x + " — veće od 15 MB")]);
+    }
 
     mkdirSync(OUTPUT, { recursive: true });
     writeFileSync(join(OUTPUT, "report.md"), L.join("\n") + "\n");

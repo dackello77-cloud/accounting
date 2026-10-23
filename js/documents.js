@@ -36,8 +36,11 @@ async function loadFiles(){
     list.innerHTML = `<tr><td colspan="3">Učitavam...</td></tr>`;
     try{
         if(current === "racuni"){
-            const receipts = await api.listAllReceipts();
-            files = receipts.map(r => ({ bucket: "receipts", path: r.storage_path, name: receiptDisplayName(r), at: r.uploaded_at, note: r.transaction_id ? "uz transakciju" : "nepovezan" }));
+            // Računi + arhiva plaćenih računa iz 1.x (prenesena migracijom, bez veze sa transakcijom).
+            const [receipts, archived] = await Promise.all([api.listAllReceipts(), api.listDocuments("racuni")]);
+            files = receipts.map(r => ({ bucket: "receipts", path: r.storage_path, name: receiptDisplayName(r), at: r.uploaded_at, note: r.transaction_id ? "uz transakciju" : "nepovezan" }))
+                .concat(archived.map(d => ({ bucket: "receipts", path: d.storage_path, name: d.file_name, at: d.created_at, note: "arhiva" })))
+                .sort((a, b) => String(b.at).localeCompare(String(a.at)));
         }else{
             const docs = await api.listDocuments(current);
             files = docs.map(d => ({ bucket: CATEGORIES[current].bucket, path: d.storage_path, name: d.file_name, at: d.created_at, note: "" }));
