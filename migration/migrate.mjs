@@ -578,6 +578,18 @@ async function writeToDb(){
         dbTxT, dbInvT, dbTxCount: dbTx.length, dbInvCount: dbInv.length };
 }
 
+// Mali (nano) projekat ume da odbije pri navali zahteva ("Too many connections"): ponovi sa pauzom.
+async function retry(fn, what){
+    let last;
+    for(let attempt = 1; attempt <= 6; attempt++){
+        const { data, error } = await fn();
+        if(!error) return data;
+        last = error;
+        await new Promise(r => setTimeout(r, attempt * 2000));
+    }
+    fail(`${what}: ${last.message}`);
+}
+
 async function uploadFiles(sb){
     console.log(`Fajlovi: ${files.uploads.length} (${(files.totalBytes / 1048576).toFixed(1)} MB)…`);
     const docs = [], receipts = [];
@@ -586,18 +598,13 @@ async function uploadFiles(sb){
     async function worker(){
         while(queue.length){
             const u = queue.shift();
-            let error;
-            for(let attempt = 0; attempt < 3; attempt++){
-                ({ error } = await sb.storage.from(u.bucket).upload(u.path, readFileSync(u.abs), { contentType: u.mime, upsert: false }));
-                if(!error) break;
-            }
-            if(error) fail(`upload ${u.rel}: ${error.message}`);
+            await retry(() => sb.storage.from(u.bucket).upload(u.path, readFileSync(u.abs), { contentType: u.mime, upsert: true }), `upload ${u.rel}`);
             if(u.receipt) receipts.push({ storage_path: u.path, original_name: u.name, transaction_id: u.receipt.transaction_id, uploaded_at: u.mtime });
             else docs.push({ category: u.document, storage_path: u.path, file_name: u.name, created_at: u.mtime });
             if(++done % 50 === 0) console.log(`  ${done}/${files.uploads.length}`);
         }
     }
-    await Promise.all(Array.from({ length: 6 }, worker));
+    await Promise.all(Array.from({ length: 3 }, worker));
     for(const [table, rows] of [["documents", docs], ["receipts", receipts]]){
         for(let i = 0; i < rows.length; i += 200){
             const { error } = await sb.from(table).insert(rows.slice(i, i + 200));
@@ -611,8 +618,7 @@ async function emptyBucket(sb, bucket){
     const paths = [];
     async function walk(prefix){
         for(let offset = 0; ; offset += 1000){
-            const { data, error } = await sb.storage.from(bucket).list(prefix, { limit: 1000, offset });
-            if(error) fail(`Storage ${bucket}: ${error.message}`);
+            const data = await retry(() => sb.storage.from(bucket).list(prefix, { limit: 1000, offset }), `Storage ${bucket}`);
             for(const f of data){
                 const p = prefix ? `${prefix}/${f.name}` : f.name;
                 if(f.id) paths.push(p); else await walk(p);
@@ -622,8 +628,7 @@ async function emptyBucket(sb, bucket){
     }
     await walk("");
     for(let i = 0; i < paths.length; i += 100){
-        const { error } = await sb.storage.from(bucket).remove(paths.slice(i, i + 100));
-        if(error) fail(`Storage ${bucket} brisanje: ${error.message}`);
+        await retry(() => sb.storage.from(bucket).remove(paths.slice(i, i + 100)), `Storage ${bucket} brisanje`);
     }
     console.log(`  Storage ${bucket}: obrisano ${paths.length}`);
 }
