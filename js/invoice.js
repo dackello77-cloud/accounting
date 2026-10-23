@@ -49,6 +49,7 @@ async function loadInitialData(){
         $("invoiceCompany").innerHTML = '<option value="">Izaberite kupca</option>' +
             companies.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join("");
         $("invoiceCompany").value = selected;
+        $("invoiceCompany").searchSync?.();
         articles = await api.listArticles({ activeOnly: true });
         $("invoiceArticleList").innerHTML = articles.map(a => `<option value="${escapeHtml(a.name)}"></option>`).join("");
         emails.load();
@@ -65,6 +66,7 @@ export function newInvoice(){
     $("invoiceNumber").value = "";
     $("invoiceIssueDate").value = "";
     $("invoiceCompany").value = "";
+    $("invoiceCompany").searchSync?.();
     $("invoiceAddress").value = "";
     $("invoiceZiro").value = "";
     $("invoiceItemRows").innerHTML = "";

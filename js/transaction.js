@@ -7,6 +7,7 @@ import { loadDashboard } from "./dashboard.js";
 import { documentFileName } from "./files.js";
 import { savePdfDocument } from "./docsave.js";
 import { resetTransactionReceiptPanel, selectedReceipt, attachSelectedReceipt } from "./receipts.js";
+import { focusSearchable } from "./searchselect.js";
 
 const $ = (id) => document.getElementById(id);
 let currentType = "";
@@ -17,6 +18,8 @@ let saving = false;
 export async function openTransactionModal(type){
     currentType = type;
     $("transactionTitle").textContent = "Nova transakcija – " + TYPE_LABELS[type];
+    // Račun uz transakciju postoji samo kod Klijenata.
+    $("transactionModal").classList.toggle("no-receipt", type !== "klijenti");
     resetTransactionModal();
     showModal("transactionModal");
     await loadPartners();
@@ -32,6 +35,7 @@ function resetTransactionModal(){
     lastTransaction = null;
     ["transactionAddress", "transactionZiro", "transactionAmount", "transactionInvoice", "transactionNotes"].forEach(id => $(id).value = "");
     $("transactionPartner").value = "";
+    $("transactionPartner").searchSync?.();
     $("transactionDate").value = todayIso();
     $("transactionDocActions").style.display = "none";
     $("transactionDocStatus").textContent = "";
@@ -64,7 +68,7 @@ export function fillEntityData(){
 
 export function newTransactionAfterSave(){
     resetTransactionModal();
-    $("transactionPartner").focus();
+    focusSearchable($("transactionPartner"));
 }
 
 export async function saveTransaction(){

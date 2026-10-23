@@ -12,6 +12,7 @@ import * as obracunR from "./obracun_r.js";
 import * as obracunK from "./obracun_k.js";
 import * as invoice from "./invoice.js";
 import { initViewer } from "./viewer.js";
+import { makeSearchable } from "./searchselect.js";
 
 const loginPage = document.getElementById("loginPage");
 const loginForm = document.getElementById("loginForm");
@@ -145,6 +146,7 @@ review.initReview();
 notes.initNotes();
 documents.initDocuments();
 initViewer();
+["transactionPartner", "invoiceCompany", "cardPartner"].forEach(id => makeSearchable(document.getElementById(id)));
 
 (async function init(){
     const session = await api.getSession();

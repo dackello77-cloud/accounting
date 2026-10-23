@@ -769,6 +769,23 @@ tr.is-storno td{opacity:.55}
 .modal-box .doc-actions button[data-download]{background:var(--accent);border-color:var(--accent);color:#fff}
 .modal-box .doc-actions button[data-download]:hover{filter:brightness(1.08);color:#fff}
 #reviewModal table th:nth-child(5){text-align:right}
+
+/* Padajući meni sa pretragom (js/searchselect.js) */
+.ss-native{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;border:0!important;opacity:0}
+.input-group:has(.ss-native),.card-row>div:has(.ss-native){position:relative}
+.ss{position:relative}
+.ss-input{width:100%;padding:11px 36px 11px 12px!important;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%)!important;background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%!important;background-size:5px 5px,5px 5px!important;background-repeat:no-repeat!important}
+.ss-list{position:absolute;z-index:50;left:0;right:0;top:calc(100% + 4px);max-height:300px;overflow-y:auto;background:var(--surface);border:1px solid var(--border-strong);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.25);padding:4px}
+.ss-list[hidden]{display:none}
+.ss-item{padding:9px 12px;border-radius:7px;font-size:14px;color:var(--text);cursor:pointer}
+.ss-item.active{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.ss-item.selected{font-weight:600;color:var(--accent)}
+.ss-empty{padding:10px 12px;color:var(--muted);font-size:14px}
+
+/* Transakcija bez računa (Ulaz, Porezi, Zaposleni) */
+#transactionModal.no-receipt .modal-box{width:640px}
+#transactionModal.no-receipt .transaction-layout{grid-template-columns:1fr}
+#transactionModal.no-receipt .transaction-receipt-panel{display:none}
 </style>
 </head>
 
