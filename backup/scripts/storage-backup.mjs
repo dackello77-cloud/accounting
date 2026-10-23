@@ -8,11 +8,22 @@ const BUCKETS = ["documents", "receipts", "statements"];
 const out = process.argv[2] || "storage";
 const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
+// Mali (nano) projekat ume da odbije pri navali zahteva ("Too many connections"): ponovi sa pauzom.
+async function retry(fn, what){
+    let last;
+    for(let attempt = 1; attempt <= 6; attempt++){
+        const { data, error } = await fn();
+        if(!error) return data;
+        last = error;
+        await new Promise(r => setTimeout(r, attempt * 2000));
+    }
+    throw new Error(`${what}: ${last.message}`);
+}
+
 async function list(bucket, prefix = ""){
     const paths = [];
     for(let offset = 0; ; offset += 1000){
-        const { data, error } = await sb.storage.from(bucket).list(prefix, { limit: 1000, offset });
-        if(error) throw new Error(`${bucket}/${prefix}: ${error.message}`);
+        const data = await retry(() => sb.storage.from(bucket).list(prefix, { limit: 1000, offset }), `${bucket}/${prefix}`);
         for(const f of data){
             const p = prefix ? `${prefix}/${f.name}` : f.name;
             if(f.id) paths.push(p); else paths.push(...await list(bucket, p));
@@ -26,15 +37,10 @@ let total = 0, bytes = 0;
 for(const bucket of BUCKETS){
     const paths = await list(bucket);
     const queue = [...paths];
-    await Promise.all(Array.from({ length: 6 }, async () => {
+    await Promise.all(Array.from({ length: 3 }, async () => {
         while(queue.length){
             const p = queue.shift();
-            let data, error;
-            for(let i = 0; i < 3; i++){
-                ({ data, error } = await sb.storage.from(bucket).download(p));
-                if(!error) break;
-            }
-            if(error) throw new Error(`${bucket}/${p}: ${error.message}`);
+            const data = await retry(() => sb.storage.from(bucket).download(p), `${bucket}/${p}`);
             const buf = Buffer.from(await data.arrayBuffer());
             const target = join(out, bucket, p);
             mkdirSync(dirname(target), { recursive: true });
