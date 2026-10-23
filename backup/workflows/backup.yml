@@ -1,0 +1,127 @@
+# Bekap M&M Safety Accounting (Supabase). Ide u PRIVATNI repozitorijum mm-accounting-backup
+# kao .github/workflows/backup.yml (artifact-i javnog repozitorijuma su dostupni svima).
+#
+# Svaki dan: baza (šema public + podaci, nalozi iz auth) → šifrovano gpg-om → artifact 30 dana.
+# Nedeljom: i svi fajlovi iz Storage-a → šifrovan zip → artifact 10 dana (limit besplatnog
+# GitHub naloga je 500 MB za artifact-e; nekoliko nedeljnih kopija po ~110 MB staje).
+# Isti posao svaki dan čita bazu i REST API, pa Supabase ne pauzira projekat zbog neaktivnosti.
+# Ako posao ne uspe, GitHub šalje mejl vlasniku repozitorijuma.
+#
+# Secrets: SUPABASE_DB_URL (Session pooler, port 5432), SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, BACKUP_PASSPHRASE.
+name: backup
+
+on:
+  schedule:
+    - cron: "0 2 * * *"        # 03:00 po beogradskom zimskom vremenu (04:00 leti)
+  workflow_dispatch:
+    inputs:
+      files:
+        description: "Bekap i fajlova iz Storage-a"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  database:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: PostgreSQL klijent 17
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq postgresql-client-17
+
+      - name: Dump baze
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          export PATH=/usr/lib/postgresql/17/bin:$PATH
+          stamp=$(date -u +%Y-%m-%d)
+          mkdir -p out
+          pg_dump "$DB_URL" -Fc --no-owner --no-privileges --schema=public -f "out/public-$stamp.dump"
+          pg_dump "$DB_URL" -Fc --no-owner --no-privileges --data-only \
+            --table=auth.users --table=auth.identities -f "out/auth-$stamp.dump"
+          # Brza provera: dump mora da sadrži glavne tabele.
+          pg_restore -l "out/public-$stamp.dump" | grep -q "TABLE DATA public transactions"
+          ls -la out
+
+      - name: Šifrovanje
+        env:
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          cd out
+          for f in *.dump; do
+            gpg --batch --yes --pinentry-mode loopback --passphrase "$PASS" --symmetric --cipher-algo AES256 -o "$f.gpg" "$f"
+            rm "$f"
+          done
+          ls -la
+
+      - name: Provera REST API-ja (sprečava pauzu projekta)
+        env:
+          URL: ${{ secrets.SUPABASE_URL }}
+          KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" "$URL/rest/v1/partners?select=id&limit=1" -H "apikey: $KEY" -H "Authorization: Bearer $KEY")
+          echo "REST: $code"
+          test "$code" = "200"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: db-${{ github.run_id }}
+          path: out/*.gpg
+          retention-days: 30
+          if-no-files-found: error
+
+  files:
+    if: github.event_name == 'schedule' || inputs.files
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Samo nedeljom (ili ručno)
+        id: day
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "$(date -u +%u)" = "7" ]; then echo "run=1" >> "$GITHUB_OUTPUT"; else echo "run=0" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: actions/checkout@v4
+        if: steps.day.outputs.run == '1'
+
+      - uses: actions/setup-node@v4
+        if: steps.day.outputs.run == '1'
+        with:
+          node-version: 22
+
+      - name: Preuzimanje fajlova iz Storage-a
+        if: steps.day.outputs.run == '1'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          npm install --no-audit --no-fund --silent @supabase/supabase-js@2.49.4
+          node scripts/storage-backup.mjs storage
+
+      - name: Zip + šifrovanje
+        if: steps.day.outputs.run == '1'
+        env:
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          stamp=$(date -u +%Y-%m-%d)
+          mkdir -p out
+          (cd storage && zip -qr "../files-$stamp.zip" .)
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$PASS" --symmetric --cipher-algo AES256 -o "out/files-$stamp.zip.gpg" "files-$stamp.zip"
+          ls -la out
+
+      - uses: actions/upload-artifact@v4
+        if: steps.day.outputs.run == '1'
+        with:
+          name: files-${{ github.run_id }}
+          path: out/*.gpg
+          retention-days: 10
+          if-no-files-found: error
