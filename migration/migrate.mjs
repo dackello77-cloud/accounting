@@ -5,7 +5,8 @@
 //   node migrate.mjs --target=dev --reset    prvo briše sve podatke i fajlove na dev-u, pa upisuje
 //   node migrate.mjs --target=prod           upis u praznu prod bazu (samo M7, uz potvrdu vlasnika)
 //
-// Ulaz: input/*.xlsx (tačno jedan), opciono input/partner_map.csv (grupa;stari naziv;šifra partnera).
+// Ulaz: input/*.xlsx (tačno jedan), opciono input/partner_map.csv (grupa;stari naziv;šifra partnera)
+// i input/corrections.json (ispravke vlasnika: datumi i valute faktura, nazivi kompanija, neaktivni partneri).
 import { readFileSync, readdirSync, existsSync, mkdirSync, writeFileSync } from "fs";
 import { randomUUID } from "crypto";
 import { dirname, join } from "path";
@@ -97,6 +98,10 @@ const xlsxFiles = readdirSync(INPUT).filter(f => /\.xlsx$/i.test(f) && !f.starts
 if(xlsxFiles.length !== 1) fail(`u ${INPUT} treba tačno jedan .xlsx fajl (nađeno: ${xlsxFiles.length})`);
 const wb = XLSX.read(readFileSync(join(INPUT, xlsxFiles[0])), { cellDates: false });
 
+const corrFile = join(INPUT, "corrections.json");
+const corr = existsSync(corrFile) ? JSON.parse(readFileSync(corrFile, "utf8")) : {};
+const corrApplied = [];
+
 const report = { warnings: [], sections: [] };
 const warn = (msg) => report.warnings.push(msg);
 
@@ -120,6 +125,16 @@ for(const [sheet, group] of Object.entries(GROUPS)){
         partners.push(p);
         partnerByKey[k] = p;
     }
+}
+
+// Bivši partneri kojih nema u listovima, a imaju transakcije: prave se kao neaktivni.
+for(const { group, name } of corr.inactivePartners || []){
+    const k = `${group}|${nameKey(name)}`;
+    if(partnerByKey[k]){ warn(`corrections.json: "${name}" već postoji u grupi ${group}`); continue; }
+    const p = { id: randomUUID(), group_type: group, name, address: null, country: "RS", bank_account: null, active: false };
+    partners.push(p);
+    partnerByKey[k] = p;
+    corrApplied.push(`neaktivan partner ${group}: ${name}`);
 }
 
 // partner_map.csv: grupa;stari naziv;šifra partnera (šifra postoji tek posle upisa, pa se ovde čuva samo veza)
@@ -202,17 +217,27 @@ const invoicePartnerGroups = ["ulaz", "porezi", "klijenti"];   // kao getInvoice
 for(const { r, line } of invoiceRows){
     const number = str(r[1]);
     if(!number){ warn(`Faktura red ${line}: bez broja, preskočeno`); continue; }
-    const issue = parseDate(r[0]);
+    let issue = parseDate(r[0]);
+    if(corr.invoiceDates?.[number]){
+        corrApplied.push(`faktura ${number}: datum izdavanja "${issue || str(r[0])}" → ${corr.invoiceDates[number]}`);
+        issue = corr.invoiceDates[number];
+    }
     const due = parseDate(r[2]);
-    if(!issue) invoiceNotes.push(`${number}: datum izdavanja "${str(r[0])}" neispravan → prazno`);
+    if(!issue && !corr.invoiceDates?.[number]) invoiceNotes.push(`${number}: datum izdavanja "${str(r[0])}" neispravan → prazno`);
     const totalRaw = str(r[4]);
     const total = parseAmount(r[4]);
     if(total === null) invoiceNotes.push(`${number}: iznos "${totalRaw}" neispravan → 0`);
-    const currency = /USD/i.test(totalRaw) ? "USD" : /RSD|din/i.test(totalRaw) ? "RSD" : null;
+    const company = corr.invoiceCompanyAliases?.[str(r[3])] || str(r[3]);
+    let currency = /USD/i.test(totalRaw) ? "USD" : /RSD|din/i.test(totalRaw) ? "RSD" : null;
+    const defCur = corr.invoiceCurrencyDefault || {};
+    if(!currency && (defCur[company] || defCur["*"])){
+        currency = defCur[company] || defCur["*"];
+        corrApplied.push(`faktura ${number}: valuta ${currency} (${company})`);
+    }
     if(!currency) invoiceNotes.push(`${number}: valuta nepoznata (iznos "${totalRaw}") → prazno`);
     const ym = number.match(/^\d+\/(\d{4})$/);
     if(issue && ym && issue.slice(0, 4) !== ym[1]) invoiceNotes.push(`${number}: datum izdavanja ${issue} ne odgovara godini u broju`);
-    const company = str(r[3]);
+    if(company !== str(r[3])) corrApplied.push(`faktura ${number}: kompanija "${str(r[3])}" → "${company}"`);
     const partner = invoicePartnerGroups.map(g => partnerByKey[`${g}|${nameKey(company)}`]).find(Boolean);
     if(!partner) invoiceNotes.push(`${number}: kompanija "${company}" nema partnera`);
     if(invoiceByNumber[number]) duplicateInvoices.push(`${number}: red ${invoiceByNumber[number].line} zamenjen redom ${line}`);
@@ -470,6 +495,7 @@ function writeReport(){
     list("Duplirane fakture (ostaje poslednji red)", duplicateInvoices);
     list("Napomene uz fakture", invoiceNotes);
     list("Obračuni", [`R: ${payrollR.dropped} starijih čuvanja istog meseca nije preneto`, `K: ${payrollK.dropped} starijih čuvanja istog meseca nije preneto`]);
+    list("Primenjene ispravke vlasnika (corrections.json)", corrApplied);
     list("Ostala upozorenja", report.warnings);
 
     L.push(``, `## Uzorak 10 transakcija`, ``, `| Red u Sheet-u | Sheet: datum / tip / naziv / iznos / status | Prenosi se kao |`, `|---|---|---|`);
