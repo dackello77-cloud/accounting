@@ -12,9 +12,11 @@ const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_R
 async function retry(fn, what){
     let last;
     for(let attempt = 1; attempt <= 6; attempt++){
-        const { data, error } = await fn();
-        if(!error) return data;
-        last = error;
+        try{
+            const { data, error } = await fn();
+            if(!error) return data;
+            last = error;
+        }catch(e){ last = e; }               // prekinuta veza (ECONNRESET) usred preuzimanja
         await new Promise(r => setTimeout(r, attempt * 2000));
     }
     throw new Error(`${what}: ${last.message}`);
@@ -40,8 +42,10 @@ for(const bucket of BUCKETS){
     await Promise.all(Array.from({ length: 3 }, async () => {
         while(queue.length){
             const p = queue.shift();
-            const data = await retry(() => sb.storage.from(bucket).download(p), `${bucket}/${p}`);
-            const buf = Buffer.from(await data.arrayBuffer());
+            const buf = await retry(async () => {
+                const { data, error } = await sb.storage.from(bucket).download(p);
+                return error ? { error } : { data: Buffer.from(await data.arrayBuffer()) };
+            }, `${bucket}/${p}`);
             const target = join(out, bucket, p);
             mkdirSync(dirname(target), { recursive: true });
             writeFileSync(target, buf);
