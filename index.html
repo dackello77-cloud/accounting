@@ -380,6 +380,8 @@ body.light-theme .invoice-items-table th{background:#eaf7ff;color:#0f172a}
 body.light-theme .theme-icon-btn,body.light-theme .current-time-box{background:rgba(255,255,255,.9);color:#0f172a;border:1px solid #d7e8f5}
 .sidebar{display:flex;flex-direction:column}
 .menu{flex:1}
+/* Fiksni meni na desktopu: kad je prozor niži od menija, meni se skroluje sam. */
+@media(min-width:901px){.sidebar{height:100vh;overflow-y:auto}}
 .sidebar-reminders{margin-top:auto;background:#0f172a;border:1px solid #334155;border-radius:14px;padding:12px;max-height:230px;overflow:auto}
 .sidebar-reminders h3{font-size:14px;margin-bottom:8px;color:#e2e8f0}
 .reminder-alert-item{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:9px;margin-bottom:8px;font-size:12px;color:#e5e7eb}
