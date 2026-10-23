@@ -4,6 +4,7 @@
 //   node migrate.mjs --target=dev            upis u praznu dev bazu (ključ iz ../.env)
 //   node migrate.mjs --target=dev --reset    prvo briše sve podatke i fajlove na dev-u, pa upisuje
 //   node migrate.mjs --target=prod           upis u praznu prod bazu (samo M7, uz potvrdu vlasnika)
+//   node migrate.mjs --target=prod --reset --confirm=<ref>   M7: prod je imao probnu kopiju; briše je pa upisuje
 //
 // Ulaz: input/*.xlsx (tačno jedan), opciono input/partner_map.csv (grupa;stari naziv;šifra partnera)
 // i input/corrections.json (ispravke vlasnika: datumi i valute faktura, nazivi kompanija, neaktivni partneri).
@@ -24,7 +25,9 @@ if(TARGET && !["dev", "prod"].includes(TARGET)) fail("--target mora biti dev ili
 const WRITE = !!TARGET;
 const PROD = TARGET === "prod";
 const RESET = args.includes("--reset");
-if(RESET && TARGET !== "dev") fail("--reset ide samo uz --target=dev");
+const CONFIRM = (args.find(a => a.startsWith("--confirm=")) || "").slice(10);
+if(RESET && !TARGET) fail("--reset ide samo uz --target");
+if(RESET && PROD && !CONFIRM) fail("--reset na prod-u traži i --confirm=<ref prod projekta>");
 
 const MONTHS = ["Januar","Februar","Mart","April","Maj","Jun","Jul","Avgust","Septembar","Oktobar","Novembar","Decembar"];
 const GROUPS = { Ulaz: "ulaz", Porezi: "porezi", Klijenti: "klijenti", Zaposleni: "zaposleni" };
@@ -509,6 +512,7 @@ async function writeToDb(){
     if(!url || !key) fail("SUPABASE_URL i SUPABASE_SERVICE_ROLE_KEY moraju biti u .env");
     const ref = (url.match(/^https:\/\/([a-z0-9]+)\.supabase\.co/) || [])[1];
     if(PROD ? ref === DEV_REF : ref !== DEV_REF) fail(`.env pokazuje na projekat ${ref}, a cilj je ${TARGET}`);
+    if(RESET && PROD && CONFIRM !== ref) fail(`--confirm=${CONFIRM} ne odgovara projektu iz .env (${ref})`);
     if(badRows.length) fail(`${badRows.length} transakcija sa neispravnim podacima; pokrenuti bez --target i proveriti izveštaj`);
 
     const { createClient } = await import("@supabase/supabase-js");
@@ -527,7 +531,7 @@ async function writeToDb(){
     if(nonEmpty.length && !RESET) fail(`baza nije prazna (${nonEmpty.map(t => `${t}: ${counts[t]}`).join(", ")}); ${PROD ? "prod mora biti prazan" : "na dev-u dodati --reset"}`);
 
     if(RESET){
-        console.log("Brisanje postojećih podataka na dev-u…");
+        console.log(`Brisanje postojećih podataka (${TARGET})…`);
         for(const t of TABLES){
             const q = sb.from(t).delete();
             await run(t === "invoice_counters" ? q.gte("year", 0) : t === "calc_drafts" ? q.neq("type", "") : q.not("id", "is", null), `brisanje ${t}`);
@@ -628,7 +632,7 @@ function writeReport(){
     const L = [];
     const now = new Date().toLocaleString("sr-RS", { timeZone: "Europe/Belgrade" });
     L.push(`# Izveštaj migracije`, ``, `- Izvor: \`${xlsxFiles[0]}\``, `- Vreme: ${now}`,
-        `- Režim: ${WRITE ? (RESET ? "upis (dev, posle brisanja)" : "upis") : "probni prolaz (baza nije menjana)"}`);
+        `- Režim: ${WRITE ? (RESET ? `upis (${TARGET}, posle brisanja)` : `upis (${TARGET})`) : "probni prolaz (baza nije menjana)"}`);
     if(dbResult) L.push(`- **Provera zbirova u bazi: ${dbResult.ok ? "✅ slaže se do pare" : "❌ RAZLIKA"}**`);
     L.push(``, `## Broj redova`, ``, `| Izvor | Redova u Sheet-u | Tabela | Upisuje se |`, `|---|---:|---|---:|`);
     const n = (s) => readSheet(wb, s).length;
