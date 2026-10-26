@@ -15,6 +15,7 @@ export function closeAddModal(){ resetAddModal(); hideModal("addModal"); }
 function resetAddModal(){
     document.querySelectorAll('input[name="addTip"]').forEach(el => el.checked = false);
     items = [];
+    $("addShowInactive").checked = false;
     $("addExistingEntity").innerHTML = '<option value="">Izaberite tip za uređivanje ili ostavite za novi unos</option>';
     clearFields();
     handleAddTipChange();
@@ -45,7 +46,8 @@ export function handleAddTipChange(){
     loadAddEntities();
 }
 
-async function loadAddEntities(){
+// Neaktivni samo uz „Prikaži neaktivne“ (npr. da se ponovo aktiviraju).
+export async function loadAddEntities(){
     const tip = selectedTip();
     const select = $("addExistingEntity");
     items = [];
@@ -55,7 +57,8 @@ async function loadAddEntities(){
     }
     select.innerHTML = '<option value="">Novi unos</option>';
     try{
-        items = tip === "artikli" ? await api.listArticles() : await api.listPartners(tip);
+        const activeOnly = !$("addShowInactive").checked;
+        items = tip === "artikli" ? await api.listArticles({ activeOnly }) : await api.listPartners(tip, { activeOnly });
         select.innerHTML = '<option value="">Novi unos</option>' + items.map((item, i) => {
             const label = (item.code ? item.code + " · " : "") + item.name + (item.active ? "" : " (neaktivan)");
             return `<option value="${i}">${escapeHtml(label)}</option>`;

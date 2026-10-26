@@ -42,6 +42,17 @@ function scheduleDraftSave(){
     draftTimer = setTimeout(() => api.saveDraft("R", getState()).catch(error => console.error(error)), 1000);
 }
 
+// Nacrt čuva zaposlene po imenu; one koji su u međuvremenu deaktivirani ne prikazujemo.
+async function inactiveEmployeeNames(){
+    const all = await api.listPartners("zaposleni");
+    const active = new Set(all.filter(e => e.active).map(e => e.name));
+    return new Set(all.filter(e => !e.active && !active.has(e.name)).map(e => e.name));
+}
+
+function savedAtText(){
+    return new Date().toLocaleTimeString("sr-RS", { timeZone: "Europe/Belgrade", hour: "2-digit", minute: "2-digit" });
+}
+
 function getRate(){
     const rate = Number($("obracunRate").value || 0);
     return rate > 0 ? rate : 0;
@@ -59,6 +70,8 @@ export async function openObracunRModal(){
         try{
             const draft = await api.getDraft("R");
             applyState(draft?.data);
+            const inactive = await inactiveEmployeeNames();
+            data.salary = data.salary.filter(row => !inactive.has(row.name));
         }catch(error){
             console.error(error);
         }
@@ -246,6 +259,19 @@ export async function saveObracunRPdfOnly(){
         status.textContent = "PDF je sačuvan: " + doc.fileName;
     }catch(error){
         status.textContent = errorMessage(error, "Greška pri čuvanju PDF-a.");
+    }
+}
+
+// Čuva nacrt bez PDF-a i slanja, da se sledeći put nastavi gde se stalo.
+export async function saveObracunRDraft(){
+    const status = $("obracunStatus");
+    clearTimeout(draftTimer);
+    status.textContent = "Čuvam...";
+    try{
+        await api.saveDraft("R", getState());
+        status.textContent = "Sačuvano u " + savedAtText() + ". Možete nastaviti kasnije.";
+    }catch(error){
+        status.textContent = errorMessage(error, "Greška pri čuvanju.");
     }
 }
 

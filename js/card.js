@@ -25,20 +25,21 @@ export function closeCardModal(){ resetCardModal(); hideModal("cardModal"); }
 function resetCardModal(){
     document.querySelectorAll('input[name="cardTip"]').forEach(el => el.checked = false);
     $("cardPartner").innerHTML = '<option value="">Svi</option>';
+    $("cardShowInactive").checked = false;
     document.querySelector('input[name="cardView"][value="single"]').checked = true;
     $("cardHead").innerHTML = "";
     $("cardTable").innerHTML = `<tr><td colspan="6">Nema podataka</td></tr>`;
     $("cardDocStatus").textContent = "";
 }
 
-// Lista sadrži i neaktivne partnere, da bi se videla njihova istorija.
+// Neaktivni partneri samo uz „Prikaži neaktivne“, da bi se videla njihova istorija.
 export async function loadCardEntities(){
     const select = $("cardPartner");
     select.innerHTML = '<option value="">Svi</option>';
     const tip = selectedTip();
     if(!tip) return;
     try{
-        const partners = await api.listPartners(tip);
+        const partners = await api.listPartners(tip, { activeOnly: !$("cardShowInactive").checked });
         select.innerHTML = '<option value="">Svi</option>' + partners.map(p =>
             `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name + (p.active ? "" : " (neaktivan)"))}</option>`).join("");
     }catch(error){

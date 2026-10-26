@@ -786,6 +786,94 @@ tr.is-storno td{opacity:.55}
 #transactionModal.no-receipt .modal-box{width:640px}
 #transactionModal.no-receipt .transaction-layout{grid-template-columns:1fr}
 #transactionModal.no-receipt .transaction-receipt-panel{display:none}
+
+/* =====================================================================
+   DIZAJN 2.0 — Obračun R i K: ceo ekran, pregled PDF-a prati skrol.
+   ===================================================================== */
+#obracunRModal,#obracunKModal{align-items:stretch;backdrop-filter:none}
+#obracunRModal .modal-box,#obracunKModal .modal-box{width:100%;max-width:100%;height:100vh;max-height:100vh;border:0;border-radius:0;box-shadow:none;padding:0 32px 32px}
+#obracunRModal .modal-header,#obracunKModal .modal-header{position:sticky;top:0;z-index:5;background:var(--surface);margin:0 -32px 20px;padding:18px 32px 14px}
+#obracunRModal .modal-header h2,#obracunKModal .modal-header h2{font-size:22px;font-weight:700}
+.obracun-r-titlebox h3,.obracun-r-summary h3,.obracun-k-titlebox h3,.obracun-k-settings h3{font-size:12px!important;font-weight:600!important;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)!important;margin-bottom:12px}
+.obracun-r-titlebox,.obracun-r-summary,.obracun-r-section,.obracun-r-email-box,
+.obracun-k-titlebox,.obracun-k-settings,.obracun-k-section,.obracun-k-email-box{padding:18px 20px}
+.obracun-r-top,.obracun-k-top{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-bottom:16px}
+.obracun-r-top{align-items:start}
+.obracun-r-monthrow{grid-template-columns:1fr 120px 170px;margin-top:0}
+.obracun-k-monthrow{margin-top:0}
+.obracun-r-titlebox .input-group,.obracun-k-titlebox .input-group{margin-bottom:0}
+.obracun-r-wrap,.obracun-k-wrap{grid-template-columns:minmax(0,1fr) minmax(560px,44%);gap:24px}
+.obracun-r-section,.obracun-k-section{margin-bottom:16px}
+.obracun-r-section-header h3,.obracun-k-section-header h3,.obracun-k-note h3{font-size:15px}
+
+/* Ukupno */
+.obracun-r-summary-row{grid-template-columns:1fr 160px 130px;padding:8px 0;font-variant-numeric:tabular-nums}
+.obracun-r-summary-row > :not(:first-child){text-align:right}
+.obracun-r-summary-row:first-of-type{color:var(--muted);font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+.obracun-r-summary-row:first-of-type strong{color:var(--muted);font-weight:600}
+.obracun-r-summary-row:last-child{border:0;margin-top:6px;padding:10px 12px;border-radius:9px;background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.obracun-r-summary-row:last-child strong{color:var(--accent);font-size:16px}
+
+/* Tabele sa stavkama */
+.obracun-r-section table{table-layout:fixed}
+.obracun-r-section th:nth-child(1){width:52px}
+.obracun-r-section th:nth-child(3){width:170px;text-align:right}
+.obracun-r-section th:nth-child(4){width:120px;text-align:right}
+.obracun-r-section th:nth-child(5){width:56px;text-align:center}
+.obracun-r-section td{padding:6px 8px}
+.obracun-r-rb{color:var(--muted);width:auto}
+.obracun-r-name,.obracun-r-money{width:100%!important;padding:9px 11px!important}
+.obracun-r-money{text-align:right;font-variant-numeric:tabular-nums}
+td.obracun-r-usd{width:auto;text-align:right;font-variant-numeric:tabular-nums}
+td:has(> .obracun-r-del){text-align:center}
+.obracun-r-del{width:32px;height:32px;padding:0}
+.obracun-r-salary-row{grid-template-columns:240px auto 1fr;padding-bottom:14px;margin-bottom:6px;border-bottom:1px solid var(--border)}
+.obracun-r-salary-row .input-group{margin-bottom:0}
+.obracun-r-hint{color:var(--muted);font-size:13px;align-self:center}
+.obracun-k-table th,.obracun-k-table td{padding:8px}
+.obracun-k-settings-grid{grid-template-columns:auto 1fr auto}
+.obracun-k-settings-grid .input-group{margin-bottom:0}
+.obracun-k-settings-grid > .radio-item{height:auto!important;align-self:end;padding:12px 14px}
+
+/* Dugmad i pregled */
+.obracun-r-actions,.obracun-k-actions{margin:4px 0 0}
+.obracun-r-actions .save-btn,.obracun-k-actions .save-btn{padding:13px 16px}
+.obracun-preview-box,.obracun-k-preview-box{position:sticky;top:84px;max-height:calc(100vh - 116px);min-height:420px;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+
+@media(max-width:1200px){
+.obracun-r-top,.obracun-k-top,.obracun-r-wrap,.obracun-k-wrap{grid-template-columns:1fr}
+.obracun-r-monthrow{grid-template-columns:1fr 120px}
+.obracun-r-monthrow .input-group:last-child{grid-column:1/-1}
+}
+@media(max-width:600px){
+#obracunRModal .modal-box,#obracunKModal .modal-box{padding:0 16px 20px}
+#obracunRModal .modal-header,#obracunKModal .modal-header{margin:0 -16px 16px;padding:14px 16px 12px}
+.obracun-r-monthrow,.obracun-k-monthrow{grid-template-columns:1fr}
+.obracun-r-summary-row{grid-template-columns:1fr 1fr 1fr}
+}
+
+/* Prekidač „Prikaži neaktivne“ pored naziva polja */
+.label-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px}
+.label-row > label{margin-bottom:0!important}
+.modal-box .show-inactive{display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;white-space:nowrap}
+.show-inactive input{width:14px;height:14px;margin:0;accent-color:var(--accent);cursor:pointer}
+
+/* Dugmad u obračunima: neutralna, jedno glavno (Pošalji) u boji teksta */
+:is(#obracunRModal,#obracunKModal) .save-btn,
+:is(#obracunRModal,#obracunKModal) .obracun-r-add{background:var(--surface)!important;color:var(--text)!important;border:1px solid var(--border-strong)!important;border-radius:8px;padding:9px 14px;font-size:13.5px;font-weight:600;letter-spacing:0;box-shadow:var(--shadow);width:auto;transition:background .15s,border-color .15s}
+:is(#obracunRModal,#obracunKModal) .save-btn:hover,
+:is(#obracunRModal,#obracunKModal) .obracun-r-add:hover{background:var(--surface-2)!important;border-color:var(--muted)!important;filter:none}
+:is(#obracunRModal,#obracunKModal) .doc-btn-both{background:var(--text)!important;color:var(--bg)!important;border-color:var(--text)!important}
+:is(#obracunRModal,#obracunKModal) .doc-btn-both:hover{background:var(--text)!important;opacity:.88}
+:is(#obracunRModal,#obracunKModal) .obracun-r-add{padding:7px 12px;font-size:13px}
+:is(#obracunRModal,#obracunKModal) .obracun-r-salary-row .save-btn{align-self:end;padding:11px 14px}
+.obracun-r-actions,.obracun-k-actions{position:sticky;bottom:0;z-index:4;display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 -2px;padding:14px 2px;background:var(--surface);border-top:1px solid var(--border)}
+.obracun-r-actions .doc-btn-both,.obracun-k-actions .doc-btn-both{margin-left:auto}
+.obracun-r-actions .save-btn,.obracun-k-actions .save-btn{padding:10px 16px}
+.obracun-r-status,.obracun-k-status{flex-basis:100%;min-height:0;margin:0;font-size:13px}
+.obracun-r-status:empty,.obracun-k-status:empty{display:none}
+.obracun-r-email-box > .doc-btn-both,.obracun-k-email-box > .doc-btn-both{margin-top:12px;padding:10px 22px}
+@media(max-width:600px){.obracun-r-actions .save-btn,.obracun-k-actions .save-btn{flex:1 1 45%}.obracun-r-actions .doc-btn-both,.obracun-k-actions .doc-btn-both{margin-left:0}}
 </style>
 </head>
 
@@ -962,7 +1050,7 @@ tr.is-storno td{opacity:.55}
         </div>
 
         <div class="input-group">
-            <label>Postojeći unos</label>
+            <div class="label-row"><label>Postojeći unos</label><label class="show-inactive"><input type="checkbox" id="addShowInactive" onchange="reloadAddEntities()"> Prikaži neaktivne</label></div>
             <select id="addExistingEntity" onchange="selectAddEntity()">
                 <option value="">Izaberite tip za uređivanje ili ostavite za novi unos</option>
             </select>
@@ -1083,7 +1171,7 @@ tr.is-storno td{opacity:.55}
 
             <div class="card-row">
                 <div class="input-group">
-                    <label>Naziv</label>
+                    <div class="label-row"><label>Naziv</label><label class="show-inactive"><input type="checkbox" id="cardShowInactive" onchange="loadCardEntities()"> Prikaži neaktivne</label></div>
                     <select id="cardPartner"><option value="">Svi</option></select>
                 </div>
                 <div class="input-group"><label>Od</label><input type="date" id="cardFrom"></div>
@@ -1186,7 +1274,7 @@ tr.is-storno td{opacity:.55}
 
         <div class="obracun-r-top">
             <div class="obracun-r-titlebox">
-                <h2>OBRAČUN - R</h2>
+                <h3>Period i kurs</h3>
                 <div class="obracun-r-monthrow">
                     <div class="input-group">
                         <label>Mesec izrade</label>
@@ -1209,10 +1297,10 @@ tr.is-storno td{opacity:.55}
                         <label>Godina</label>
                         <input type="number" id="obracunYear" onchange="renderObracunR()">
                     </div>
-                </div>
-                <div class="input-group">
-                    <label>Kurs dolara</label>
-                    <input type="number" id="obracunRate" step="0.01" placeholder="npr. 117.25" oninput="renderObracunR()">
+                    <div class="input-group">
+                        <label>Kurs dolara</label>
+                        <input type="number" id="obracunRate" step="0.01" placeholder="npr. 117.25" oninput="renderObracunR()">
+                    </div>
                 </div>
             </div>
 
@@ -1261,7 +1349,7 @@ tr.is-storno td{opacity:.55}
                             <input type="number" id="defaultSalaryRsd" step="0.01" oninput="applyDefaultSalary()">
                         </div>
                         <button class="save-btn" onclick="applyDefaultSalary()">Primeni svima</button>
-                        <span style="color:#94a3b8;">Iznos se može ručno promeniti kod pojedinačnog zaposlenog.</span>
+                        <span class="obracun-r-hint">Iznos se može ručno promeniti kod pojedinačnog zaposlenog.</span>
                     </div>
                     <table>
                         <thead><tr><th>RB</th><th>Naziv</th><th>RSD</th><th>USD</th><th>X</th></tr></thead>
@@ -1271,9 +1359,11 @@ tr.is-storno td{opacity:.55}
                 </div>
 
                 <div class="obracun-r-actions">
-                    <button class="save-btn doc-btn-save" onclick="saveObracunRPdfOnly()">SAVE PDF</button>
-                    <button class="save-btn doc-btn-print" onclick="printObracunR()">PRINT</button>
-                    <button class="save-btn doc-btn-both" onclick="toggleObracunEmailBox()">SEND EMAIL</button>
+                    <button class="save-btn doc-btn-draft" onclick="saveObracunRDraft()">Sačuvaj</button>
+                    <button class="save-btn doc-btn-save" onclick="saveObracunRPdfOnly()">Sačuvaj PDF</button>
+                    <button class="save-btn doc-btn-print" onclick="printObracunR()">Štampaj</button>
+                    <button class="save-btn doc-btn-both" onclick="toggleObracunEmailBox()">Pošalji email…</button>
+                    <div class="obracun-r-status" id="obracunStatus"></div>
                 </div>
 
                 <div class="obracun-r-email-box" id="obracunEmailBox">
@@ -1300,8 +1390,7 @@ tr.is-storno td{opacity:.55}
                         <textarea id="obracunEmailMessage" placeholder="Unesite poruku ako treba nešto dodati pre slanja..."></textarea>
                     </div>
 
-                    <button class="save-btn doc-btn-both" onclick="sendObracunREmail()">SEND</button>
-                    <div class="obracun-r-status" id="obracunStatus"></div>
+                    <button class="save-btn doc-btn-both" onclick="sendObracunREmail()">Pošalji</button>
                 </div>
             </div>
 
@@ -1321,7 +1410,7 @@ tr.is-storno td{opacity:.55}
 
         <div class="obracun-k-top">
             <div class="obracun-k-titlebox">
-                <h2>OBRAČUN - K</h2>
+                <h3>Period</h3>
                 <div class="obracun-k-monthrow">
                     <div class="input-group">
                         <label>Mesec izrade</label>
@@ -1348,7 +1437,7 @@ tr.is-storno td{opacity:.55}
             </div>
 
             <div class="obracun-k-settings">
-                <h3 style="margin-bottom:12px;">Dodatna kolona</h3>
+                <h3>Dodatna kolona</h3>
                 <div class="obracun-k-settings-grid">
                     <label class="radio-item" style="height:47px;">
                         <input type="checkbox" id="obracunKExtraEnabled" onchange="renderObracunK()">
@@ -1388,9 +1477,11 @@ tr.is-storno td{opacity:.55}
                 </div>
 
                 <div class="obracun-k-actions">
-                    <button class="save-btn doc-btn-save" onclick="saveObracunKPdfOnly()">SAVE PDF</button>
-                    <button class="save-btn doc-btn-print" onclick="printObracunK()">PRINT</button>
-                    <button class="save-btn doc-btn-both" onclick="toggleObracunKEmailBox()">SEND EMAIL</button>
+                    <button class="save-btn doc-btn-draft" onclick="saveObracunKDraft()">Sačuvaj</button>
+                    <button class="save-btn doc-btn-save" onclick="saveObracunKPdfOnly()">Sačuvaj PDF</button>
+                    <button class="save-btn doc-btn-print" onclick="printObracunK()">Štampaj</button>
+                    <button class="save-btn doc-btn-both" onclick="toggleObracunKEmailBox()">Pošalji email…</button>
+                    <div class="obracun-k-status" id="obracunKStatus"></div>
                 </div>
 
                 <div class="obracun-k-email-box" id="obracunKEmailBox">
@@ -1417,8 +1508,7 @@ tr.is-storno td{opacity:.55}
                         <textarea id="obracunKEmailMessage" placeholder="Unesite poruku ako treba nešto dodati pre slanja..."></textarea>
                     </div>
 
-                    <button class="save-btn doc-btn-both" onclick="sendObracunKEmail()">SEND</button>
-                    <div class="obracun-k-status" id="obracunKStatus"></div>
+                    <button class="save-btn doc-btn-both" onclick="sendObracunKEmail()">Pošalji</button>
                 </div>
             </div>
 

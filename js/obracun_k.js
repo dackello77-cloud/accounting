@@ -47,6 +47,17 @@ function scheduleDraftSave(){
     draftTimer = setTimeout(() => api.saveDraft("K", getState()).catch(error => console.error(error)), 1000);
 }
 
+// Nacrt čuva zaposlene po imenu; one koji su u međuvremenu deaktivirani ne prikazujemo.
+async function inactiveEmployeeNames(){
+    const all = await api.listPartners("zaposleni");
+    const active = new Set(all.filter(e => e.active).map(e => e.name));
+    return new Set(all.filter(e => !e.active && !active.has(e.name)).map(e => e.name));
+}
+
+function savedAtText(){
+    return new Date().toLocaleTimeString("sr-RS", { timeZone: "Europe/Belgrade", hour: "2-digit", minute: "2-digit" });
+}
+
 export async function openObracunKModal(){
     showModal("obracunKModal");
     const now = new Date();
@@ -60,6 +71,10 @@ export async function openObracunKModal(){
         try{
             const draft = await api.getDraft("K");
             hasRows = applyState(draft?.data);
+            if(hasRows){
+                const inactive = await inactiveEmployeeNames();
+                rows = rows.filter(row => !inactive.has(row.name));
+            }
         }catch(error){
             console.error(error);
         }
@@ -268,6 +283,19 @@ export async function saveObracunKPdfOnly(){
         status.textContent = "PDF je sačuvan: " + doc.fileName;
     }catch(error){
         status.textContent = errorMessage(error, "Greška pri čuvanju PDF-a.");
+    }
+}
+
+// Čuva nacrt bez PDF-a i slanja, da se sledeći put nastavi gde se stalo.
+export async function saveObracunKDraft(){
+    const status = $("obracunKStatus");
+    clearTimeout(draftTimer);
+    status.textContent = "Čuvam...";
+    try{
+        await api.saveDraft("K", getState());
+        status.textContent = "Sačuvano u " + savedAtText() + ". Možete nastaviti kasnije.";
+    }catch(error){
+        status.textContent = errorMessage(error, "Greška pri čuvanju.");
     }
 }
 
