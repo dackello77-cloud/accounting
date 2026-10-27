@@ -10,6 +10,7 @@ const $ = (id) => document.getElementById(id);
 let rows = [];
 let draftLoaded = false;
 let draftTimer = null;
+let pendingSave = null;
 let emails = null;
 
 function extraType(){
@@ -44,7 +45,14 @@ function applyState(state){
 function scheduleDraftSave(){
     if(!draftLoaded) return;
     clearTimeout(draftTimer);
-    draftTimer = setTimeout(() => api.saveDraft("K", getState()).catch(error => console.error(error)), 1000);
+    draftTimer = setTimeout(() => saveDraftNow().catch(error => console.error(error)), 1000);
+}
+
+function saveDraftNow(){
+    clearTimeout(draftTimer);
+    draftTimer = null;
+    pendingSave = api.saveDraft("K", getState());
+    return pendingSave;
 }
 
 // Nacrt čuva zaposlene po imenu; one koji su u međuvremenu deaktivirani ne prikazujemo.
@@ -64,31 +72,40 @@ export async function openObracunKModal(){
     if(!emails){
         emails = new EmailPicker({ selectId: "obracunKEmailSelect", chipsId: "obracunKEmailChips", nameId: "newKEmailName", addressId: "newKEmailAddress" });
     }
-    if(!draftLoaded){
+    // Nacrt se čita iz baze pri svakom otvaranju (možda je menjan na drugom uređaju ili tabu).
+    // Dok se ne učita, automatsko čuvanje je isključeno da prazan obračun ne prepiše sačuvani.
+    draftLoaded = false;
+    const status = $("obracunKStatus");
+    status.textContent = "Učitavam sačuvani obračun...";
+    let hasRows = false;
+    try{
+        await pendingSave?.catch(() => {});
+        const draft = await api.getDraft("K");
+        rows = [];
         $("obracunKMonth").value = MONTHS[now.getMonth()];
         $("obracunKYear").value = now.getFullYear();
-        let hasRows = false;
-        try{
-            const draft = await api.getDraft("K");
-            hasRows = applyState(draft?.data);
-            if(hasRows){
-                const inactive = await inactiveEmployeeNames();
-                rows = rows.filter(row => !inactive.has(row.name));
-            }
-        }catch(error){
-            console.error(error);
+        hasRows = applyState(draft?.data);
+        if(hasRows){
+            const inactive = await inactiveEmployeeNames();
+            rows = rows.filter(row => !inactive.has(row.name));
         }
-        draftLoaded = true;
-        if(!hasRows){
-            await loadObracunKEmployees(true);
-            return;
-        }
+    }catch(error){
+        console.error(error);
+        status.textContent = errorMessage(error, "Sačuvani obračun nije učitan. Zatvorite i otvorite obračun ponovo.");
+        return;
+    }
+    draftLoaded = true;
+    status.textContent = "";
+    if(!hasRows){
+        await loadObracunKEmployees(true);
+        return;
     }
     renderObracunK();
 }
 
 export function closeObracunKModal(){
     hideModal("obracunKModal");
+    if(draftTimer) saveDraftNow().catch(error => console.error(error));
 }
 
 export async function loadObracunKEmployees(force){
@@ -290,9 +307,13 @@ export async function saveObracunKPdfOnly(){
 export async function saveObracunKDraft(){
     const status = $("obracunKStatus");
     clearTimeout(draftTimer);
+    if(!draftLoaded){
+        status.textContent = "Sačuvani obračun nije učitan, pa čuvanje nije dozvoljeno. Zatvorite i otvorite obračun ponovo.";
+        return;
+    }
     status.textContent = "Čuvam...";
     try{
-        await api.saveDraft("K", getState());
+        await saveDraftNow();
         status.textContent = "Sačuvano u " + savedAtText() + ". Možete nastaviti kasnije.";
     }catch(error){
         status.textContent = errorMessage(error, "Greška pri čuvanju.");

@@ -234,7 +234,12 @@ export function listInvoiceCompanies(){
 
 // ---------- Obračuni R i K ----------
 
-export function getDraft(type){
+// Bez sesije RLS vraća prazan rezultat bez greške; tada bi se prazan nacrt upisao preko sačuvanog.
+export async function getDraft(type){
+    if(!await getSession()){
+        onAuthRequired();
+        throw new UserError("Niste prijavljeni. Prijavite se i otvorite obračun ponovo.");
+    }
     return run(sb.from("calc_drafts").select("data").eq("type", type).maybeSingle());
 }
 
