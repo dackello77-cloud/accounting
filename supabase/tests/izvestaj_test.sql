@@ -67,7 +67,29 @@ select pg_temp.expect((select doc_count from public.accountant_reports) = 1, 'br
 delete from public.accountant_reports;
 select pg_temp.expect((select count(*) from public.accountant_reports) = 1, 'slanje se ne briše (nema delete policy)');
 
+-- Računi: ide samo plaćen (pun iznos ili običan račun sa uplatom); na čekanju i delimično ne.
+insert into public.partners (id, group_type, name) values
+  ('10000000-0000-0000-0000-000000000001', 'klijenti', 'Kap života');
+insert into public.receipts (id, storage_path, partner_id, invoice_number, amount) values
+  ('40000000-0000-0000-0000-000000000001', 'r/placen.pdf',     '10000000-0000-0000-0000-000000000001', '1', 500.00),
+  ('40000000-0000-0000-0000-000000000002', 'r/delimicno.pdf',  '10000000-0000-0000-0000-000000000001', '2', 500.00);
+insert into public.receipts (id, storage_path) values
+  ('40000000-0000-0000-0000-000000000003', 'r/obican.pdf'),
+  ('40000000-0000-0000-0000-000000000004', 'r/cekanje.pdf');
+insert into public.transactions (tx_date, type, partner_id, partner_name, amount, receipt_id) values
+  ('2026-10-20', 'klijenti', '10000000-0000-0000-0000-000000000001', 'Kap života', 500.00, '40000000-0000-0000-0000-000000000001'),
+  ('2026-10-20', 'klijenti', '10000000-0000-0000-0000-000000000001', 'Kap života', 200.00, '40000000-0000-0000-0000-000000000002'),
+  ('2026-10-20', 'klijenti', '10000000-0000-0000-0000-000000000001', 'Kap života', 100.00, '40000000-0000-0000-0000-000000000003');
+select pg_temp.expect((select array_agg(storage_path order by storage_path) from public.v_accountant_receipts)
+                      = array['r/obican.pdf', 'r/placen.pdf'], 'idu samo plaćeni računi');
+update public.receipts set accountant_report_id = '30000000-0000-0000-0000-000000000001'
+ where id = '40000000-0000-0000-0000-000000000001' and accountant_report_id is null;
+select pg_temp.expect((select count(*) from public.v_accountant_receipts where accountant_report_id is null) = 1, 'poslat račun se ne nudi ponovo');
+update public.transactions set status = 'storno' where receipt_id = '40000000-0000-0000-0000-000000000003';
+select pg_temp.expect(not exists (select 1 from public.v_accountant_receipts where id = '40000000-0000-0000-0000-000000000003'), 'stornirana uplata → račun nije plaćen');
+
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000b', 'authenticated');
+select pg_temp.expect((select count(*) from public.v_accountant_receipts) = 0, 'neaktivan: 0 računa');
 select pg_temp.expect((select count(*) from public.accountant_reports) = 0, 'neaktivan: 0 slanja');
 select pg_temp.expect((select count(*) from public.accountant_settings) = 0, 'neaktivan: 0 podešavanja');
 

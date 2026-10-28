@@ -1,14 +1,17 @@
-// Izveštaj knjigovođi: fakture i izvodi sačuvani posle prethodnog slanja idu mejlom;
-// poslati dokumenti se označavaju (documents.accountant_report_id) i ne šalju se ponovo.
+// Izveštaj knjigovođi: fakture, plaćeni računi i izvodi od prethodnog slanja idu mejlom;
+// poslati se označavaju (documents/receipts.accountant_report_id) i ne šalju se ponovo.
 import * as api from "./api.js";
 import { escapeHtml, formatDate, formatDateTime, todayIso, errorMessage, showModal, hideModal } from "./util.js";
 import { CATEGORIES } from "./files.js";
 import { EmailList } from "./emaillist.js";
 import { openViewer } from "./viewer.js";
+import { receiptDisplayName } from "./receipts.js";
 
 const $ = (id) => document.getElementById(id);
 // Prvi pokušaj: do 10 priloga po mejlu; ako send-email javi da je preveliko, deli se na pola.
 const BATCH_SIZE = 10;
+// Redosled grupa u listi i mejlu.
+const GROUPS = ["fakture", "racuni", "izvodi_dinarski", "izvodi_devizni"];
 let emails = null;
 let settings = null;
 let pending = [];
@@ -39,8 +42,8 @@ async function load(){
 function showStart(){
     $("accountantStartBox").hidden = !!settings?.start_date;
     $("accountantStartInfo").textContent = settings?.start_date
-        ? "Šalju se fakture i izvodi sačuvani posle prethodnog slanja (prvo slanje: od " + formatDate(settings.start_date) + ")."
-        : "Prvo slanje: izaberite datum od kog se šalju fakture i izvodi; stariji se ne šalju.";
+        ? "Šalju se fakture, plaćeni računi i izvodi od prethodnog slanja (prvo slanje: od " + formatDate(settings.start_date) + ")."
+        : "Prvo slanje: izaberite datum od kog se šalju fakture, plaćeni računi i izvodi; stariji se ne šalju. Računi na čekanju i delimično plaćeni ne idu.";
 }
 
 function startDate(){
@@ -62,14 +65,16 @@ export async function loadPending(){
         return;
     }
     try{
-        pending = (await api.listAccountantPending(startIso(date)))
-            .map(d => ({ ...d, bucket: CATEGORIES[d.category].bucket, path: d.storage_path, name: d.file_name }));
+        const [docs, receipts] = await Promise.all([api.listAccountantPending(startIso(date)), api.listAccountantReceipts(startIso(date))]);
+        pending = docs.map(d => ({ id: d.id, category: d.category, bucket: CATEGORIES[d.category].bucket, path: d.storage_path, name: d.file_name, at: d.created_at }))
+            .concat(receipts.map(r => ({ id: r.id, category: "racuni", receipt: true, bucket: "receipts", path: r.storage_path, name: receiptDisplayName(r), at: r.paid_at })))
+            .sort((a, b) => GROUPS.indexOf(a.category) - GROUPS.indexOf(b.category) || String(a.at).localeCompare(String(b.at)));
         list.innerHTML = pending.length === 0
-            ? `<tr><td colspan="4">Nema novih faktura ni izvoda za slanje.</td></tr>`
+            ? `<tr><td colspan="4">Nema novih faktura, računa ni izvoda za slanje.</td></tr>`
             : pending.map((d, i) => `<tr>
                 <td>${escapeHtml(CATEGORIES[d.category].label)}</td>
-                <td><button class="doc-name-btn" data-open="${i}">${escapeHtml(d.file_name)}</button></td>
-                <td>${escapeHtml(formatDateTime(d.created_at))}</td>
+                <td><button class="doc-name-btn" data-open="${i}">${escapeHtml(d.name)}</button></td>
+                <td>${escapeHtml(formatDateTime(d.at))}</td>
                 <td class="doc-actions"><button data-open="${i}">Otvori</button></td>
             </tr>`).join("");
     }catch(error){
@@ -99,13 +104,13 @@ async function loadHistory(){
 }
 
 function buildEmailHtml(docs, part){
-    const groups = api.ACCOUNTANT_CATEGORIES.map(cat => [cat, docs.filter(d => d.category === cat)]).filter(([, list]) => list.length);
+    const groups = GROUPS.map(cat => [cat, docs.filter(d => d.category === cat)]).filter(([, list]) => list.length);
     const sections = groups.map(([cat, list]) => `<div style="margin-top:16px;"><div style="font-weight:800;">${escapeHtml(CATEGORIES[cat].label)} (${list.length})</div>`
-        + `<ul style="margin:6px 0 0;padding-left:20px;line-height:1.6;">${list.map(d => `<li>${escapeHtml(d.file_name)}</li>`).join("")}</ul></div>`).join("");
+        + `<ul style="margin:6px 0 0;padding-left:20px;line-height:1.6;">${list.map(d => `<li>${escapeHtml(d.name)}</li>`).join("")}</ul></div>`).join("");
     return `<div style="background:#eaf7ff;padding:28px;font-family:Arial,sans-serif;color:#0f172a;"><div style="max-width:680px;margin:0 auto;background:white;border-radius:22px;overflow:hidden;border:1px solid #d7e8f5;">`
         + `<div style="padding:24px;border-bottom:3px solid #073b44;"><img src="cid:mmlogo" alt="M&M Safety" style="width:150px;height:auto;display:block;">`
         + `<div style="margin-top:12px;font-size:20px;font-weight:800;">Izveštaj knjigovođi${part ? " – deo " + part : ""}</div>`
-        + `<div style="margin-top:6px;color:#64748b;">${escapeHtml(formatDate(todayIso()))} · fakture i izvodi od prethodnog slanja</div></div>`
+        + `<div style="margin-top:6px;color:#64748b;">${escapeHtml(formatDate(todayIso()))} · fakture, plaćeni računi i izvodi od prethodnog slanja</div></div>`
         + `<div style="padding:24px;">${sections}<p style="margin-top:22px;color:#475569;">Dokumenti su u prilogu.</p></div></div></div>`;
 }
 
@@ -116,7 +121,7 @@ export async function sendAccountantReport(){
     if(to === null) return;
     if(!to.length){ alert("Dodajte mejl knjigovođe"); return; }
     if(!startDate()){ alert("Izaberite datum od kog se šalje"); return; }
-    if(!pending.length){ status.textContent = "Nema novih faktura ni izvoda za slanje."; return; }
+    if(!pending.length){ status.textContent = "Nema novih faktura, računa ni izvoda za slanje."; return; }
 
     sending = true;
     $("accountantSendBtn").disabled = true;
@@ -141,7 +146,7 @@ export async function sendAccountantReport(){
                     to,
                     subject: `Izveštaj knjigovođi ${formatDate(todayIso())}${label ? " – deo " + label : ""} – M&M SAFETY DOO`,
                     html: buildEmailHtml(batch, label),
-                    attachments: batch.map(d => ({ bucket: d.bucket, path: d.path, filename: d.file_name })),
+                    attachments: batch.map(d => ({ bucket: d.bucket, path: d.path, filename: d.name })),
                     kind: "izvestaj",
                     record_id: report?.id || null
                 });
@@ -156,7 +161,10 @@ export async function sendAccountantReport(){
             part++;
             test = test || !!result?.test;
             if(!report) report = await api.addAccountantReport(to);
-            await api.markDocumentsSent(report.id, batch.map(d => d.id));
+            const docIds = batch.filter(d => !d.receipt).map(d => d.id);
+            const receiptIds = batch.filter(d => d.receipt).map(d => d.id);
+            if(docIds.length) await api.markDocumentsSent(report.id, docIds);
+            if(receiptIds.length) await api.markReceiptsSent(report.id, receiptIds);
             sentCount += batch.length;
             await api.setAccountantReportCount(report.id, sentCount);
         }

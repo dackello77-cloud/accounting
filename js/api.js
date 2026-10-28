@@ -244,6 +244,18 @@ export function listAccountantPending(since){
         .order("created_at"));
 }
 
+// Plaćeni računi (bez onih na čekanju i delimično plaćenih) još neposlati knjigovođi.
+export function listAccountantReceipts(since){
+    return run(sb.from("v_accountant_receipts").select("*")
+        .is("accountant_report_id", null)
+        .gte("paid_at", since)
+        .order("paid_at"));
+}
+
+export function markReceiptsSent(reportId, ids){
+    return run(sb.from("receipts").update({ accountant_report_id: reportId }).in("id", ids).is("accountant_report_id", null));
+}
+
 export function addAccountantReport(recipients){
     return run(sb.from("accountant_reports").insert({ recipients }).select().single());
 }
