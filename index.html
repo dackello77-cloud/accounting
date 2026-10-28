@@ -996,6 +996,7 @@ td:has(> .obracun-r-del){text-align:center}
             <button class="nav-faktura" onclick="openInvoiceModal()"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg><span>Faktura</span></button>
             <button onclick="openObracunRModal()"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01"/></svg><span>Obračun - R</span></button>
             <button onclick="openObracunKModal()"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01"/></svg><span>Obračun - K</span></button>
+            <button onclick="openAccountantModal()"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg><span>Izveštaj knjigovođi</span></button>
             <button class="nav-dokumenti" onclick="openDocumentsModal()"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg><span>Dokumenti</span></button>
             <button class="mobile-notes-button mobile-receipt-button" onclick="openReceiptModal()"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><span>Sačuvaj račun</span></button>
             <button class="mobile-notes-button" onclick="openNotesModal()"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l5 5v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v6h6"/></svg><span>Notes / Podsetnik</span></button>
@@ -1432,6 +1433,31 @@ td:has(> .obracun-r-del){text-align:center}
 
 
 
+
+<!-- IZVEŠTAJ KNJIGOVOĐI MODAL -->
+<div class="modal" id="accountantModal">
+    <div class="modal-box" style="width:950px;max-width:95%;">
+        <div class="modal-header">
+            <h2>Izveštaj knjigovođi</h2>
+            <button class="close-btn" onclick="closeAccountantModal()">X</button>
+        </div>
+        <p class="doc-note" id="accountantStartInfo" style="margin-bottom:12px;"></p>
+        <div class="input-group"><label>Mejl knjigovođe (pamti se)</label><div id="accountantEmails"></div></div>
+        <div class="input-group" id="accountantStartBox" hidden><label>Prvo slanje: fakture i izvodi sačuvani od</label><input type="date" id="accountantStart" onchange="loadAccountantPending()"></div>
+        <h3 style="margin-top:16px;">Za slanje (fakture, izvodi dinarski i devizni)</h3>
+        <table>
+            <thead><tr><th>Vrsta</th><th>Naziv</th><th>Sačuvano</th><th></th></tr></thead>
+            <tbody id="accountantList"></tbody>
+        </table>
+        <button class="save-btn" id="accountantSendBtn" style="margin-top:14px;" onclick="sendAccountantReport()">POŠALJI KNJIGOVOĐI</button>
+        <div class="doc-status" id="accountantStatus"></div>
+        <h3 style="margin-top:20px;">Prethodna slanja</h3>
+        <table>
+            <thead><tr><th>Poslato</th><th>Dokumenata</th><th>Primaoci</th></tr></thead>
+            <tbody id="accountantHistory"></tbody>
+        </table>
+    </div>
+</div>
 
 <!-- OBRACUN R MODAL -->
 <div class="modal" id="obracunRModal">

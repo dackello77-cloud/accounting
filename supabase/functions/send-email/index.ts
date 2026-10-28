@@ -4,9 +4,13 @@
 import nodemailer from "npm:nodemailer@6.9.16";
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
-const KINDS: Record<string, string> = { faktura: "invoices", obracun_r: "payroll_r", obracun_k: "payroll_k" };
+const KINDS: Record<string, string> = {
+  faktura: "invoices", obracun_r: "payroll_r", obracun_k: "payroll_k", izvestaj: "accountant_reports",
+};
 const BUCKETS = ["receipts", "documents", "statements"];
-const MAX_ATTACHMENTS = 5;
+const MAX_ATTACHMENTS = 25;
+// Gmail prima do 25 MB po mejlu (base64 povećava ~33%); veći izveštaj aplikacija deli u više mejlova.
+const MAX_TOTAL_BYTES = 17 * 1024 * 1024;
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -73,12 +77,15 @@ Deno.serve(async (req) => {
 
   // Prilozi iz Storage-a, preuzeti sa pravima korisnika (RLS).
   const files = [];
+  let totalBytes = 0;
   for (const a of attachments) {
     const bucket = String(a.bucket ?? "");
     const path = String(a.path ?? "");
     if (!BUCKETS.includes(bucket) || !path) return json({ error: "Neispravan prilog." }, 400);
     const { data, error } = await userClient.storage.from(bucket).download(path);
     if (error || !data) return json({ error: "Prilog nije pronađen: " + (a.filename || path) }, 400);
+    totalBytes += data.size;
+    if (totalBytes > MAX_TOTAL_BYTES) return json({ error: "Prilozi su preveliki za jedan mejl.", too_large: true }, 413);
     files.push({
       filename: String(a.filename || path.split("/").pop()),
       content: new Uint8Array(await data.arrayBuffer()),

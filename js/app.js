@@ -14,6 +14,7 @@ import * as transfer from "./transfer.js";
 import * as obracunR from "./obracun_r.js";
 import * as obracunK from "./obracun_k.js";
 import * as invoice from "./invoice.js";
+import * as accountant from "./accountant.js";
 import { initViewer } from "./viewer.js";
 import { makeSearchable } from "./searchselect.js";
 
@@ -83,6 +84,10 @@ Object.assign(window, {
     newTransactionAfterSave: transaction.newTransactionAfterSave,
     handleTransactionDocumentAction: transaction.handleTransactionDocumentAction,
     openTransferModal: transfer.openTransferModal,
+    openAccountantModal: accountant.openAccountantModal,
+    closeAccountantModal: accountant.closeAccountantModal,
+    loadAccountantPending: accountant.loadPending,
+    sendAccountantReport: accountant.sendAccountantReport,
     closeTransferModal: transfer.closeTransferModal,
     saveTransfer: transfer.saveTransfer,
     openReviewModal: review.openReviewModal,
@@ -168,6 +173,7 @@ documents.initDocuments();
 receipts.initReceipts();
 scan.initScan();
 transfer.initTransfer();
+accountant.initAccountant();
 receivables.initReceivables();
 initViewer();
 ["transactionPartner", "invoiceCompany", "cardPartner", "receiptPartner", "claimPartner"].forEach(id => makeSearchable(document.getElementById(id)));

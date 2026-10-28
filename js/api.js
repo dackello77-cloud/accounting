@@ -223,6 +223,43 @@ export function listDocuments(category){
     return run(sb.from("documents").select("*").eq("category", category).order("created_at", { ascending: false }));
 }
 
+// ---------- Izveštaj knjigovođi ----------
+
+export const ACCOUNTANT_CATEGORIES = ["fakture", "izvodi_dinarski", "izvodi_devizni"];
+
+export async function getAccountantSettings(){
+    return run(sb.from("accountant_settings").select("*").eq("id", true).maybeSingle());
+}
+
+export function updateAccountantSettings(fields){
+    return run(sb.from("accountant_settings").update(fields).eq("id", true).select().single());
+}
+
+// Fakture i izvodi još neposlati knjigovođi, sačuvani od trenutka since (ISO).
+export function listAccountantPending(since){
+    return run(sb.from("documents").select("*")
+        .in("category", ACCOUNTANT_CATEGORIES)
+        .is("accountant_report_id", null)
+        .gte("created_at", since)
+        .order("created_at"));
+}
+
+export function addAccountantReport(recipients){
+    return run(sb.from("accountant_reports").insert({ recipients }).select().single());
+}
+
+export function setAccountantReportCount(id, docCount){
+    return run(sb.from("accountant_reports").update({ doc_count: docCount }).eq("id", id));
+}
+
+export function markDocumentsSent(reportId, ids){
+    return run(sb.from("documents").update({ accountant_report_id: reportId }).in("id", ids).is("accountant_report_id", null));
+}
+
+export function listAccountantReports(limit = 10){
+    return run(sb.from("accountant_reports").select("*").order("sent_at", { ascending: false }).limit(limit));
+}
+
 export function setTransactionDocument(id, path){
     return run(sb.from("transactions").update({ document_path: path }).eq("id", id));
 }
@@ -315,13 +352,17 @@ export async function sendEmail(payload){
     const { data, error } = await sb.functions.invoke("send-email", { body: payload });
     if(error){
         let message = "Greška pri slanju mejla.";
+        let tooLarge = false;
         try{
             const body = await error.context?.json();
             if(body?.error) message = body.error;
+            tooLarge = body?.too_large === true;
         }catch{}
         if(error.context?.status === 401) onAuthRequired();
         if(error.context?.status === 404) message = "Funkcija send-email nije postavljena na Supabase.";
-        throw new UserError(message);
+        const userError = new UserError(message);
+        userError.tooLarge = tooLarge;
+        throw userError;
     }
     return data;
 }
