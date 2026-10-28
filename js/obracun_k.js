@@ -5,6 +5,7 @@ import { LOGO_URL } from "./logo.js";
 import { MONTHS, payrollFileName } from "./files.js";
 import { savePdfDocument } from "./docsave.js";
 import { EmailPicker } from "./emailpicker.js";
+import { PayrollCompany } from "./payrollcompany.js";
 
 const $ = (id) => document.getElementById(id);
 let rows = [];
@@ -12,6 +13,7 @@ let draftLoaded = false;
 let draftTimer = null;
 let pendingSave = null;
 let emails = null;
+let company = null;
 
 function extraType(){
     return document.querySelector('input[name="obracunKExtraType"]:checked')?.value || "text";
@@ -66,20 +68,14 @@ function savedAtText(){
     return new Date().toLocaleTimeString("sr-RS", { timeZone: "Europe/Belgrade", hour: "2-digit", minute: "2-digit" });
 }
 
-// Stalni primaoci obračuna (Dodaj / Uredi → Primaoci obračuna); ručno dodati ostaju.
-function applyPayrollRecipients(){
-    api.getPayrollRecipients("K")
-        .then(list => emails.setAuto(list.map(email => ({ name: "Obračun K", email }))))
-        .catch(error => console.error(error));
-}
-
 export async function openObracunKModal(){
     showModal("obracunKModal");
     const now = new Date();
     if(!emails){
         emails = new EmailPicker({ selectId: "obracunKEmailSelect", chipsId: "obracunKEmailChips", nameId: "newKEmailName", addressId: "newKEmailAddress" });
     }
-    applyPayrollRecipients();
+    if(!company) company = new PayrollCompany("K", "obracunKCompany", emails);
+    company.load();
     // Nacrt se čita iz baze pri svakom otvaranju (možda je menjan na drugom uređaju ili tabu).
     // Dok se ne učita, automatsko čuvanje je isključeno da prazan obračun ne prepiše sačuvani.
     draftLoaded = false;
@@ -333,7 +329,7 @@ export function toggleObracunKEmailBox(){
     box.style.display = box.style.display === "block" ? "none" : "block";
     if(box.style.display === "block"){
         emails.load();
-        applyPayrollRecipients();
+        company.load();
     }
 }
 
@@ -379,6 +375,7 @@ export async function sendObracunKEmail(){
 }
 
 export const emailActions = {
+    changeObracunKCompany: () => company?.change(),
     addSelectedObracunKEmail: () => emails.addSelected(),
     addNewObracunKEmail: () => emails.addNew(),
     loadObracunKEmails: () => emails.load()

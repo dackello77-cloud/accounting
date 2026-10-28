@@ -5,6 +5,7 @@ import { LOGO_URL } from "./logo.js";
 import { MONTHS, payrollFileName } from "./files.js";
 import { savePdfDocument } from "./docsave.js";
 import { EmailPicker } from "./emailpicker.js";
+import { PayrollCompany } from "./payrollcompany.js";
 
 const $ = (id) => document.getElementById(id);
 let data = { tax: [], cost: [], salary: [] };
@@ -12,6 +13,7 @@ let draftLoaded = false;
 let draftTimer = null;
 let pendingSave = null;
 let emails = null;
+let company = null;
 
 function formatUsd(num){
     return Number(num || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -66,19 +68,13 @@ function getRate(){
     return rate > 0 ? rate : 0;
 }
 
-// Stalni primaoci obračuna (Dodaj / Uredi → Primaoci obračuna); ručno dodati ostaju.
-function applyPayrollRecipients(){
-    api.getPayrollRecipients("R")
-        .then(list => emails.setAuto(list.map(email => ({ name: "Obračun R", email }))))
-        .catch(error => console.error(error));
-}
-
 export async function openObracunRModal(){
     showModal("obracunRModal");
     if(!emails){
         emails = new EmailPicker({ selectId: "obracunEmailSelect", chipsId: "obracunEmailChips", nameId: "newEmailName", addressId: "newEmailAddress" });
     }
-    applyPayrollRecipients();
+    if(!company) company = new PayrollCompany("R", "obracunCompany", emails);
+    company.load();
     // Nacrt se čita iz baze pri svakom otvaranju (možda je menjan na drugom uređaju ili tabu).
     // Dok se ne učita, automatsko čuvanje je isključeno da prazan obračun ne prepiše sačuvani.
     draftLoaded = false;
@@ -309,7 +305,7 @@ export function toggleObracunEmailBox(){
     box.style.display = box.style.display === "block" ? "none" : "block";
     if(box.style.display === "block"){
         emails.load();
-        applyPayrollRecipients();
+        company.load();
         box.scrollIntoView({ behavior: "smooth", block: "center" });
     }
 }
@@ -359,6 +355,7 @@ export async function sendObracunREmail(){
 }
 
 export const emailActions = {
+    changeObracunCompany: () => company?.change(),
     addSelectedObracunEmail: () => emails.addSelected(),
     addNewObracunEmail: () => emails.addNew(),
     loadObracunEmails: () => emails.load()

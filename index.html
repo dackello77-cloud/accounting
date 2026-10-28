@@ -1113,7 +1113,6 @@ td:has(> .obracun-r-del){text-align:center}
                 <label class="radio-item"><input type="radio" name="addTip" value="zaposleni" onchange="handleAddTipChange()"> Zaposleni</label>
                 <label class="radio-item"><input type="radio" name="addTip" value="artikli" onchange="handleAddTipChange()"> Artikli</label>
                 <label class="radio-item"><input type="radio" name="addTip" value="banke" onchange="handleAddTipChange()"> Banke</label>
-                <label class="radio-item"><input type="radio" name="addTip" value="obracun" onchange="handleAddTipChange()"> Primaoci obračuna</label>
             </div>
         </div>
 
@@ -1140,11 +1139,6 @@ td:has(> .obracun-r-del){text-align:center}
             </div>
             <div class="input-group"><label>Email (jedan ili više; faktura ih postavlja za slanje)</label><div class="email-list" id="addEmails"></div></div>
             <div class="input-group"><label>Prioritetna banka (transakcije i faktura)</label><select id="addBank"><option value="">Podrazumevana</option></select></div>
-        </div>
-        <div id="addPayrollFields" style="display:none">
-            <p class="receipt-claim-hint">Ovi mejlovi se automatski postavljaju pri slanju obračuna; pri slanju mogu da se dodaju ili uklone.</p>
-            <div class="input-group"><label>Obračun - R</label><div class="email-list" id="addPayrollR"></div></div>
-            <div class="input-group"><label>Obračun - K</label><div class="email-list" id="addPayrollK"></div></div>
         </div>
         <label class="radio-item active-toggle" id="addActiveRow"><input type="checkbox" id="addActive" checked> Aktivan (neaktivni se ne prikazuju u padajućim menijima)</label>
         <button class="save-btn" id="addSaveBtn" onclick="saveEntity()">SAVE</button>
@@ -1534,6 +1528,7 @@ td:has(> .obracun-r-del){text-align:center}
 
                 <div class="obracun-r-email-box" id="obracunEmailBox">
                     <h3>Slanje emaila</h3>
+                    <div class="input-group"><label>Kompanija (njeni mejlovi su primaoci; izbor se pamti)</label><select id="obracunCompany" onchange="changeObracunCompany()"><option value="">Bez kompanije</option></select></div>
                     <div class="email-picker-grid">
                         <div class="input-group">
                             <label>Dodaj email iz liste</label>
@@ -1652,6 +1647,7 @@ td:has(> .obracun-r-del){text-align:center}
 
                 <div class="obracun-k-email-box" id="obracunKEmailBox">
                     <h3>Slanje emaila</h3>
+                    <div class="input-group"><label>Kompanija (njeni mejlovi su primaoci; izbor se pamti)</label><select id="obracunKCompany" onchange="changeObracunKCompany()"><option value="">Bez kompanije</option></select></div>
                     <div class="email-picker-grid">
                         <div class="input-group">
                             <label>Dodaj email iz liste</label>

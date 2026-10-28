@@ -61,15 +61,14 @@ update public.partners set emails = '{}' where id = '10000000-0000-0000-0000-000
 select pg_temp.expect((select email from public.partners where id = '10000000-0000-0000-0000-000000000001') is null, 'prazna lista → email null');
 select pg_temp.expect_error($$update public.partners set emails = array['nije-mejl'] where id = '10000000-0000-0000-0000-000000000001'$$, 'neispravan mejl odbijen');
 
--- Primaoci obračuna
+-- Obračun: izabrana kompanija se pamti po tipu
 select pg_temp.expect((select count(*) from public.payroll_recipients) = 2, 'redovi R i K');
-update public.payroll_recipients set emails = array['knjigovodja@example.rs', 'BOSS@us.example'] where type = 'R';
-select pg_temp.expect((select emails from public.payroll_recipients where type = 'R') = array['knjigovodja@example.rs', 'BOSS@us.example'], 'primaoci R sačuvani');
-select pg_temp.expect((select name from public.email_recipients where email = 'knjigovodja@example.rs') = 'Obračun R', 'primalac obračuna u email_recipients');
-select pg_temp.expect((select count(*) from public.email_recipients where lower(email) = 'boss@us.example') = 1, 'isti mejl drugim slovima nije dupliran');
-select pg_temp.expect_error($$update public.payroll_recipients set emails = array['x@'] where type = 'K'$$, 'neispravan primalac obračuna odbijen');
+update public.payroll_recipients set partner_id = '10000000-0000-0000-0000-000000000001' where type = 'R';
+select pg_temp.expect((select partner_id from public.payroll_recipients where type = 'R') = '10000000-0000-0000-0000-000000000001', 'kompanija za obračun R sačuvana');
+select pg_temp.expect((select partner_id from public.payroll_recipients where type = 'K') is null, 'K bez kompanije');
+select pg_temp.expect_error($$update public.payroll_recipients set partner_id = '10000000-0000-0000-0000-0000000000ff' where type = 'K'$$, 'nepostojeća kompanija odbijena');
 delete from public.payroll_recipients;
-select pg_temp.expect((select count(*) from public.payroll_recipients) = 2, 'brisanje primalaca obračuna odbijeno');
+select pg_temp.expect((select count(*) from public.payroll_recipients) = 2, 'brisanje podešavanja obračuna odbijeno');
 
 reset role;
 select pg_temp.as_user(null, 'anon');

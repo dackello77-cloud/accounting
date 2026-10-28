@@ -105,15 +105,15 @@ export function saveArticle(id, fields){
 
 // ---------- Transakcije ----------
 
-// ---------- Primaoci obračuna (R, K) ----------
+// ---------- Kompanija kojoj se šalje obračun (R, K) ----------
 
-export async function getPayrollRecipients(type){
-    const rows = await run(sb.from("payroll_recipients").select("emails").eq("type", type));
-    return rows[0]?.emails || [];
+export async function getPayrollCompany(type){
+    const rows = await run(sb.from("payroll_recipients").select("partner_id").eq("type", type));
+    return rows[0]?.partner_id || "";
 }
 
-export function savePayrollRecipients(type, emails){
-    return run(sb.from("payroll_recipients").upsert({ type, emails }, { onConflict: "type" }));
+export function savePayrollCompany(type, partnerId){
+    return run(sb.from("payroll_recipients").upsert({ type, partner_id: partnerId || null }, { onConflict: "type" }));
 }
 
 // ---------- Banke ----------
