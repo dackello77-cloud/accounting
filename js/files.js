@@ -46,10 +46,11 @@ export function documentFileName(isoDate, name, invoiceNumber){
     return `${m}-${d}-${y} - ${firstWord(name, "Dokument")} - ${sanitizeFileName(invoiceNumber || "BEZ-FAKTURE")}.pdf`;
 }
 
-// Račun: "dd-MM-yyyy - napomena - original"
-export function receiptFileName(note, originalName){
+// Račun za plaćanje: "Kompanija - broj fakture.ext"; običan račun: "dd-MM-yyyy - Racun - original"
+export function receiptFileName(company, invoiceNumber, originalName){
+    if(company) return `${sanitizeFileName(company)} - ${sanitizeFileName(invoiceNumber)}${extensionOf(originalName)}`;
     const [y, m, d] = todayIso().split("-");
-    return `${d}-${m}-${y} - ${firstWord(note, "Racun")} - ${sanitizeFileName(originalName || "racun")}`;
+    return `${d}-${m}-${y} - Racun - ${sanitizeFileName(originalName || "racun")}`;
 }
 
 export function invoiceFileName(number){

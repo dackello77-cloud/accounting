@@ -1256,12 +1256,7 @@ td:has(> .obracun-r-del){text-align:center}
             <div class="input-group"><label>Iznos za plaćanje (RSD)</label><input type="text" id="receiptAmount" inputmode="decimal" autocomplete="off" placeholder="0,00"></div>
         </div>
 
-        <div class="input-group">
-            <label>Naziv / napomena (opciono)</label>
-            <input type="text" id="receiptNote" placeholder="Npr. gorivo, putarina, račun...">
-        </div>
-
-        <button class="save-btn" onclick="saveReceipt()">
+        <button class="save-btn" id="receiptSaveBtn" onclick="saveReceipt()">
             SAVE
         </button>
 

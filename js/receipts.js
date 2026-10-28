@@ -38,6 +38,7 @@ export function readClaim(select, invoiceInput, amountInput){
 let localFile = null;
 let fileHandle = null;
 let canDeleteOriginal = false;
+let saving = false;
 
 function supportsDeletablePicker(){
     return window.isSecureContext && typeof window.showOpenFilePicker === "function";
@@ -56,7 +57,6 @@ export function openReceiptModal(){
     const picker = supportsDeletablePicker();
     $("receiptFile").style.display = picker ? "none" : "block";
     $("receiptPickerBtn").style.display = picker ? "block" : "none";
-    $("receiptNote").value = "";
     $("receiptInvoice").value = "";
     $("receiptAmount").value = "";
     $("receiptMessage").textContent = "";
@@ -102,9 +102,9 @@ export function handleReceiptFileFallback(){
 }
 
 export async function saveReceipt(){
+    if(saving) return;
     const message = $("receiptMessage");
     const file = localFile || $("receiptFile").files[0];
-    const note = $("receiptNote").value.trim();
     if(!file){
         message.style.color = "#ef4444";
         message.textContent = "Izaberite fajl.";
@@ -123,18 +123,27 @@ export async function saveReceipt(){
         return;
     }
 
-    message.style.color = "#22c55e";
-    message.textContent = "Čuvam račun...";
-    const fileName = receiptFileName(note, file.name);
+    const company = claim.fields.partner_id ? $("receiptPartner").selectedOptions[0]?.textContent : "";
+    const fileName = receiptFileName(company, claim.fields.invoice_number, file.name);
     const path = `inbox/${shortId()}/${storageKey(fileName)}`;
+    const started = performance.now();
+    const seconds = () => ((performance.now() - started) / 1000).toLocaleString("sr-Latn-RS", { maximumFractionDigits: 1 }) + " s";
+    saving = true;
+    $("receiptSaveBtn").disabled = true;
+    message.style.color = "#22c55e";
     try{
+        message.textContent = `Šaljem fajl (${(file.size / 1048576).toLocaleString("sr-Latn-RS", { maximumFractionDigits: 1 })} MB)...`;
         await api.uploadFile("receipts", path, file, { contentType: contentTypeOf(file) });
-        await api.addReceipt({ storage_path: path, original_name: file.name, note: note || null, ...claim.fields });
+        message.textContent = `Fajl poslat za ${seconds()}. Upisujem podatke...`;
+        await api.addReceipt({ storage_path: path, original_name: file.name, ...claim.fields });
         loadDashboard();
     }catch(error){
         message.style.color = "#ef4444";
         message.textContent = errorMessage(error, "Greška pri čuvanju računa.");
         return;
+    }finally{
+        saving = false;
+        $("receiptSaveBtn").disabled = false;
     }
 
     let localMessage = " Originalni fajl je ostao na računaru.";
@@ -152,7 +161,7 @@ export async function saveReceipt(){
     $("receiptInvoice").value = "";
     $("receiptAmount").value = "";
     message.style.color = localMessage.includes("je obrisan") ? "#22c55e" : "#f59e0b";
-    message.textContent = "Račun je uspešno sačuvan: " + fileName + "." + localMessage;
+    message.textContent = `Račun je uspešno sačuvan (${seconds()}): ${fileName}.${localMessage}`;
     setTimeout(closeReceiptModal, 2200);
 }
 
@@ -233,8 +242,10 @@ export function selectedReceipt(){ return selected; }
 
 // Posle čuvanja transakcije: račun prelazi u transactions/<tx_id>/ pod imenom dokumenta transakcije.
 // Račun koji je već uz raniju uplatu (delimično plaćen) ostaje gde jeste; veza je transactions.receipt_id.
+// Račun za plaćanje zadržava naziv "Kompanija - broj fakture".
 export async function attachSelectedReceipt(transactionId, baseName){
     if(!selected) return null;
+    if(selected.amount != null) baseName = receiptDisplayName(selected).replace(/\.[^.]+$/, "");
     if(selected.transaction_id){
         const name = receiptDisplayName(selected);
         selected = null;
