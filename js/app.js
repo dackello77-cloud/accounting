@@ -8,6 +8,7 @@ import * as card from "./card.js";
 import * as notes from "./notes.js";
 import * as receipts from "./receipts.js";
 import * as documents from "./documents.js";
+import * as receivables from "./receivables.js";
 import * as obracunR from "./obracun_r.js";
 import * as obracunK from "./obracun_k.js";
 import * as invoice from "./invoice.js";
@@ -97,7 +98,13 @@ Object.assign(window, {
     handleReceiptFileFallback: receipts.handleReceiptFileFallback,
     saveReceipt: receipts.saveReceipt,
     loadTransactionReceipts: receipts.loadTransactionReceipts,
-    selectTransactionReceipt: receipts.selectTransactionReceipt,
+    selectTransactionReceipt: transaction.selectTransactionReceipt,
+    openReceivablesModal: receivables.openReceivablesModal,
+    closeReceivablesModal: receivables.closeReceivablesModal,
+    showReceivablesTab: receivables.showReceivablesTab,
+    renderReceivables: receivables.render,
+    closeClaimModal: receivables.closeClaimModal,
+    saveClaim: receivables.saveClaim,
     openDocumentsModal: documents.openDocumentsModal,
     openPendingReceipts: documents.openPendingReceipts,
     closeDocumentsModal: documents.closeDocumentsModal,
@@ -149,8 +156,10 @@ transaction.initTransaction();
 review.initReview();
 notes.initNotes();
 documents.initDocuments();
+receipts.initReceipts();
+receivables.initReceivables();
 initViewer();
-["transactionPartner", "invoiceCompany", "cardPartner"].forEach(id => makeSearchable(document.getElementById(id)));
+["transactionPartner", "invoiceCompany", "cardPartner", "receiptPartner", "claimPartner"].forEach(id => makeSearchable(document.getElementById(id)));
 
 (async function init(){
     const session = await api.getSession();

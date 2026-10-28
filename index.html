@@ -771,6 +771,32 @@ tr.is-storno td{opacity:.55}
 .modal-box .doc-actions button[data-download]:hover{filter:brightness(1.08);color:#fff}
 #reviewModal table th:nth-child(5){text-align:right}
 
+/* Potraživanja */
+#receivablesModal .modal-box{width:1400px;max-width:98%}
+#claimModal{z-index:1001}
+.receipt-claim{border:1px solid var(--border);border-radius:12px;padding:14px 16px 2px;margin-bottom:16px}
+.receipt-claim-hint{color:var(--muted);font-size:13px;margin:0 0 12px}
+.recv-toolbar{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.recv-toolbar .input-group{min-width:280px;margin:0}
+.recv-tabs{display:flex;gap:6px}
+.recv-tabs button{padding:9px 14px;border-radius:9px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-weight:600;font-size:14px}
+.recv-tabs button.active{background:color-mix(in srgb,var(--accent) 14%,transparent);border-color:var(--accent);color:var(--accent)}
+.recv-summary{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;margin-bottom:16px}
+.recv-total span{display:block;color:var(--muted);font-size:13px}
+.recv-total strong{font-size:26px;font-variant-numeric:tabular-nums}
+.recv-by-company{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px;flex:1}
+.recv-by-company li{display:flex;gap:12px;align-items:baseline;border:1px solid var(--border);border-radius:9px;padding:7px 12px;font-size:14px}
+.recv-by-company em{color:var(--muted);font-style:normal}
+.recv-by-company strong{font-variant-numeric:tabular-nums}
+.recv-status{font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;--c:var(--muted);color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);white-space:nowrap}
+.recv-status.s-neplacena{--c:var(--neg)}.recv-status.s-delimicno{--c:#f59e0b}.recv-status.s-placena{--c:var(--pos)}
+.recv-actions{display:flex;gap:6px;flex-wrap:wrap}
+#receivablesModal thead th:nth-child(3),#receivablesModal thead th:nth-child(4),#receivablesModal thead th:nth-child(5){text-align:right}
+tr.recv-payments > td{background:var(--surface-2)}
+.recv-payments-table th,.recv-payments-table td{padding:7px 10px}
+.recv-payments-table tfoot td{font-weight:600}
+@media (max-width:700px){.recv-toolbar .input-group{min-width:0;width:100%}}
+
 /* Padajući meni sa pretragom (js/searchselect.js) */
 .ss-native{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;border:0!important;opacity:0}
 .input-group:has(.ss-native),.card-row>div:has(.ss-native){position:relative}
@@ -911,6 +937,7 @@ td:has(> .obracun-r-del){text-align:center}
             <button class="active" onclick="loadDashboard()"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span>Dashboard</span></button>
             <button onclick="openReviewModal()"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>Pregled</span></button>
             <button onclick="openCardModal()"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6"/></svg><span>Kartica</span></button>
+            <button onclick="openReceivablesModal()"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 9h6M12 7v8M9.5 13.5c.5.7 1.4 1 2.5 1 1.4 0 2.5-.6 2.5-1.6S13.4 11.5 12 11.3c-1.4-.2-2.5-.6-2.5-1.5S10.6 8.4 12 8.4c1 0 1.9.3 2.4.9"/></svg><span>Potraživanja</span></button>
             <div class="nav-section">Unos</div>
             <button class="menu-group-btn" aria-expanded="false" onclick="const open=this.getAttribute('aria-expanded')!=='true';this.setAttribute('aria-expanded',open);this.nextElementSibling.hidden=!open"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg><span>Transakcije</span></button>
             <div class="submenu" hidden>
@@ -1222,6 +1249,13 @@ td:has(> .obracun-r-del){text-align:center}
             <div id="receiptFileName" class="receipt-file-name"></div>
         </div>
 
+        <div class="receipt-claim">
+            <p class="receipt-claim-hint">Račun za plaćanje: popunite sva tri polja i račun ulazi u Potraživanja. Za običan račun ostavite prazno.</p>
+            <div class="input-group"><label>Kompanija</label><select id="receiptPartner"><option value="">Učitavam...</option></select></div>
+            <div class="input-group"><label>Broj fakture</label><input type="text" id="receiptInvoice" autocomplete="off"></div>
+            <div class="input-group"><label>Iznos za plaćanje (RSD)</label><input type="text" id="receiptAmount" inputmode="decimal" autocomplete="off" placeholder="0,00"></div>
+        </div>
+
         <div class="input-group">
             <label>Naziv / napomena (opciono)</label>
             <input type="text" id="receiptNote" placeholder="Npr. gorivo, putarina, račun...">
@@ -1235,6 +1269,48 @@ td:has(> .obracun-r-del){text-align:center}
     </div>
 </div>
 
+
+<!-- POTRAŽIVANJA MODAL -->
+<div class="modal" id="receivablesModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2>Potraživanja</h2>
+            <button class="close-btn" onclick="closeReceivablesModal()">X</button>
+        </div>
+        <div class="recv-toolbar">
+            <div class="recv-tabs" role="tablist">
+                <button id="receivablesTabOpen" class="active" onclick="showReceivablesTab('open')">Potraživanja</button>
+                <button id="receivablesTabDone" onclick="showReceivablesTab('done')">Realizovane fakture</button>
+            </div>
+            <div class="input-group"><label>Kompanija</label><select id="receivablesCompany" onchange="renderReceivables()"><option value="">Sve kompanije</option></select></div>
+        </div>
+        <div class="recv-summary">
+            <div class="recv-total"><span>Ukupno za plaćanje</span><strong id="receivablesTotal">–</strong></div>
+            <ul class="recv-by-company" id="receivablesByCompany"></ul>
+        </div>
+        <table>
+            <thead><tr><th>Kompanija</th><th>Broj fakture</th><th>Iznos</th><th>Plaćeno</th><th>Preostalo</th><th>Status</th><th>Akcija</th></tr></thead>
+            <tbody id="receivablesTable"><tr><td colspan="7">Nema podataka</td></tr></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- PODACI RAČUNA (kompanija, broj, iznos) -->
+<div class="modal" id="claimModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2>Podaci računa</h2>
+            <button class="close-btn" onclick="closeClaimModal()">X</button>
+        </div>
+        <p class="receipt-claim-hint" id="claimFileName"></p>
+        <div class="input-group"><label>Kompanija</label><select id="claimPartner"><option value="">Učitavam...</option></select></div>
+        <div class="input-group"><label>Broj fakture</label><input type="text" id="claimInvoice" autocomplete="off"></div>
+        <div class="input-group"><label>Iznos za plaćanje (RSD)</label><input type="text" id="claimAmount" inputmode="decimal" autocomplete="off" placeholder="0,00"></div>
+        <p class="receipt-claim-hint">Ako obrišete sva tri polja, račun izlazi iz Potraživanja.</p>
+        <button class="save-btn" onclick="saveClaim()">SAVE</button>
+        <div class="doc-status" id="claimMessage"></div>
+    </div>
+</div>
 
 <!-- DOCUMENTS MODAL -->
 <div class="modal" id="documentsModal">

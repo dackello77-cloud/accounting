@@ -1,10 +1,11 @@
 // Dokumenti: lista fajlova po kategoriji iz Storage-a (otvori / preuzmi) i upload izvoda.
 import * as api from "./api.js";
-import { escapeHtml, formatDateTime, errorMessage, showModal, hideModal } from "./util.js";
+import { escapeHtml, formatMoney, formatDateTime, errorMessage, showModal, hideModal } from "./util.js";
 import { CATEGORIES, storageKey, shortId, checkUploadFile, contentTypeOf } from "./files.js";
 import { openStorageFile } from "./docsave.js";
 import { openViewer } from "./viewer.js";
 import { receiptDisplayName } from "./receipts.js";
+import { openClaimEditor } from "./receivables.js";
 
 const $ = (id) => document.getElementById(id);
 let current = "";
@@ -46,7 +47,8 @@ async function loadFiles(){
     try{
         if(current === "racuni_cekanje"){
             const receipts = await api.listInboxReceipts();
-            files = receipts.map(r => ({ bucket: "receipts", path: r.storage_path, name: receiptDisplayName(r), at: r.uploaded_at, note: r.note || "" }));
+            files = receipts.map(r => ({ bucket: "receipts", path: r.storage_path, name: receiptDisplayName(r), at: r.uploaded_at, receipt: r,
+                note: [r.note, r.amount != null ? `za plaćanje ${formatMoney(r.amount)} RSD, br. ${r.invoice_number}` : ""].filter(Boolean).join(" · ") }));
         }else if(current === "racuni"){
             // Računi + arhiva plaćenih računa iz 1.x (prenesena migracijom, bez veze sa transakcijom).
             const [receipts, archived] = await Promise.all([api.listAllReceipts(), api.listDocuments("racuni")]);
@@ -61,7 +63,7 @@ async function loadFiles(){
             : files.map((f, i) => `<tr>
                 <td><button class="doc-name-btn" data-open="${i}">${escapeHtml(f.name)}</button>${f.note ? `<div class="doc-note">${escapeHtml(f.note)}</div>` : ""}</td>
                 <td>${escapeHtml(formatDateTime(f.at))}</td>
-                <td class="doc-actions"><button data-open="${i}">Otvori</button><button data-download="${i}">Preuzmi</button></td>
+                <td class="doc-actions">${f.receipt ? `<button data-claim="${i}">${f.receipt.amount != null ? "Podaci" : "Unesi podatke"}</button>` : ""}<button data-open="${i}">Otvori</button><button data-download="${i}">Preuzmi</button></td>
             </tr>`).join("");
     }catch(error){
         list.innerHTML = `<tr><td colspan="3">${escapeHtml(errorMessage(error, "Greška pri učitavanju dokumenata."))}</td></tr>`;
@@ -99,6 +101,8 @@ export function initDocuments(){
         if(btn) showCategory(btn.dataset.category);
     });
     $("documentsList").addEventListener("click", async (event) => {
+        const claim = event.target.closest("button[data-claim]");
+        if(claim){ openClaimEditor(files[Number(claim.dataset.claim)].receipt, loadFiles); return; }
         const open = event.target.closest("button[data-open]");
         const download = event.target.closest("button[data-download]");
         const i = Number((open || download)?.dataset.open ?? (open || download)?.dataset.download);

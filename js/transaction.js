@@ -6,7 +6,7 @@ import { LOGO_URL } from "./logo.js";
 import { loadDashboard } from "./dashboard.js";
 import { documentFileName } from "./files.js";
 import { savePdfDocument } from "./docsave.js";
-import { resetTransactionReceiptPanel, selectedReceipt, attachSelectedReceipt } from "./receipts.js";
+import { resetTransactionReceiptPanel, selectedReceipt, attachSelectedReceipt, selectTransactionReceipt as pickReceipt } from "./receipts.js";
 import { focusSearchable } from "./searchselect.js";
 
 const $ = (id) => document.getElementById(id);
@@ -66,6 +66,23 @@ export function fillEntityData(){
     $("transactionZiro").value = p?.bank_account || "";
 }
 
+// Račun iz Potraživanja popunjava kompaniju, broj fakture i preostali iznos (sve se može promeniti).
+export async function selectTransactionReceipt(){
+    await pickReceipt();
+    const r = selectedReceipt();
+    if(r?.amount == null) return;
+    const select = $("transactionPartner");
+    if(partners.some(p => p.id === r.partner_id)){
+        select.value = r.partner_id;
+        select.searchSync?.();
+        fillEntityData();
+    }else{
+        $("transactionDocStatus").textContent = "Kompanija sa računa nije aktivna u listi Klijenti; izaberite naziv ručno.";
+    }
+    $("transactionInvoice").value = r.invoice_number || "";
+    $("transactionAmount").value = formatMoney(r.remaining);
+}
+
 export function newTransactionAfterSave(){
     resetTransactionModal();
     focusSearchable($("transactionPartner"));
@@ -99,7 +116,8 @@ export async function saveTransaction(){
             bank_account: partner.bank_account || null,
             invoice_number: $("transactionInvoice").value.trim() || null,
             amount,
-            notes: $("transactionNotes").value.trim() || null
+            notes: $("transactionNotes").value.trim() || null,
+            receipt_id: selectedReceipt()?.id || null
         });
     }catch(error){
         $("transactionDocStatus").textContent = errorMessage(error, "Greška pri čuvanju.");

@@ -1,10 +1,37 @@
 // Sačuvaj račun (upload u inbox) i izbor računa uz transakciju.
 import * as api from "./api.js";
-import { escapeHtml, errorMessage, showModal, hideModal } from "./util.js";
+import { escapeHtml, errorMessage, showModal, hideModal, formatMoney, parseAmount, bindAmountInput } from "./util.js";
 import { loadDashboard } from "./dashboard.js";
 import { receiptFileName, storageKey, shortId, checkUploadFile, contentTypeOf, extensionOf } from "./files.js";
 
 const $ = (id) => document.getElementById(id);
+
+// ---------- Podaci za Potraživanja (kompanija, broj fakture, iznos) ----------
+
+// Kompanije su partneri grupe Klijenti; neaktivan partner ostaje u listi ako je već izabran.
+export async function fillClaimPartners(select, currentId = ""){
+    select.innerHTML = '<option value="">Učitavam...</option>';
+    let partners = await api.listPartners("klijenti");
+    partners = partners.filter(p => p.active || p.id === currentId);
+    select.innerHTML = '<option value="">Izaberite kompaniju</option>' +
+        partners.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join("");
+    select.value = currentId || "";
+    select.searchSync?.();
+}
+
+// Sva tri polja ili nijedno; vraća { fields } ili { error }.
+export function readClaim(select, invoiceInput, amountInput){
+    const partnerId = select.value;
+    const invoice = invoiceInput.value.trim();
+    const amountText = amountInput.value.trim();
+    if(!partnerId && !invoice && !amountText) return { fields: { partner_id: null, invoice_number: null, amount: null } };
+    if(!partnerId) return { error: "Izaberite kompaniju." };
+    if(!invoice) return { error: "Unesite broj fakture." };
+    if(!amountText) return { error: "Unesite iznos za plaćanje." };
+    const amount = parseAmount(amountText);
+    if(amount === null || amount <= 0) return { error: "Unesite ispravan iznos za plaćanje." };
+    return { fields: { partner_id: partnerId, invoice_number: invoice, amount } };
+}
 
 // ---------- Sačuvaj račun ----------
 
@@ -30,8 +57,15 @@ export function openReceiptModal(){
     $("receiptFile").style.display = picker ? "none" : "block";
     $("receiptPickerBtn").style.display = picker ? "block" : "none";
     $("receiptNote").value = "";
+    $("receiptInvoice").value = "";
+    $("receiptAmount").value = "";
     $("receiptMessage").textContent = "";
     showModal("receiptModal");
+    fillClaimPartners($("receiptPartner")).catch(error => {
+        $("receiptPartner").innerHTML = '<option value="">Greška pri učitavanju</option>';
+        $("receiptMessage").style.color = "#ef4444";
+        $("receiptMessage").textContent = errorMessage(error, "Greška pri učitavanju kompanija.");
+    });
 }
 
 export function closeReceiptModal(){ hideModal("receiptModal"); }
@@ -82,6 +116,12 @@ export async function saveReceipt(){
         message.textContent = problem;
         return;
     }
+    const claim = readClaim($("receiptPartner"), $("receiptInvoice"), $("receiptAmount"));
+    if(claim.error){
+        message.style.color = "#ef4444";
+        message.textContent = claim.error;
+        return;
+    }
 
     message.style.color = "#22c55e";
     message.textContent = "Čuvam račun...";
@@ -89,7 +129,7 @@ export async function saveReceipt(){
     const path = `inbox/${shortId()}/${storageKey(fileName)}`;
     try{
         await api.uploadFile("receipts", path, file, { contentType: contentTypeOf(file) });
-        await api.addReceipt({ storage_path: path, original_name: file.name, note: note || null });
+        await api.addReceipt({ storage_path: path, original_name: file.name, note: note || null, ...claim.fields });
         loadDashboard();
     }catch(error){
         message.style.color = "#ef4444";
@@ -107,9 +147,17 @@ export async function saveReceipt(){
         }
     }
     resetFileSelection();
+    $("receiptPartner").value = "";
+    $("receiptPartner").searchSync?.();
+    $("receiptInvoice").value = "";
+    $("receiptAmount").value = "";
     message.style.color = localMessage.includes("je obrisan") ? "#22c55e" : "#f59e0b";
     message.textContent = "Račun je uspešno sačuvan: " + fileName + "." + localMessage;
     setTimeout(closeReceiptModal, 2200);
+}
+
+export function initReceipts(){
+    bindAmountInput($("receiptAmount"));
 }
 
 // ---------- Račun uz transakciju ----------
@@ -119,6 +167,12 @@ let selected = null;
 
 export function receiptDisplayName(r){
     return r.storage_path.split("/").pop();
+}
+
+// Naziv u listi uz transakciju: potraživanje pokazuje kompaniju, broj i preostali iznos.
+function pickerLabel(r){
+    if(r.amount == null) return receiptDisplayName(r);
+    return `${r.partner_name} – br. ${r.invoice_number} – preostalo ${formatMoney(r.remaining)} RSD`;
 }
 
 export function resetTransactionReceiptPanel(){
@@ -136,14 +190,18 @@ export async function loadTransactionReceipts(){
     $("transactionReceiptPreview").textContent = "Preview računa će se prikazati ovde.";
     selected = null;
     try{
-        inbox = await api.listInboxReceipts();
+        // Računi na čekanju + otvorena potraživanja (i delimično plaćena, već povezana sa uplatom).
+        const [pending, receivables] = await Promise.all([api.listInboxReceipts(), api.listReceivables()]);
+        const open = receivables.filter(r => r.status !== "placena");
+        const openIds = new Set(receivables.map(r => r.id));
+        inbox = open.concat(pending.filter(r => !openIds.has(r.id)));
         if(!inbox.length){
             select.innerHTML = '<option value="">Nema sačuvanih računa</option>';
             info.textContent = "Nema računa za preuzimanje. Dodajte ih kroz Sačuvaj račun.";
             return;
         }
         select.innerHTML = '<option value="">Izaberite račun</option>' +
-            inbox.map(r => `<option value="${escapeHtml(r.id)}">${escapeHtml(receiptDisplayName(r))}</option>`).join("");
+            inbox.map(r => `<option value="${escapeHtml(r.id)}">${escapeHtml(pickerLabel(r))}</option>`).join("");
         info.textContent = "Izaberite račun iz liste.";
     }catch(error){
         info.textContent = errorMessage(error, "Greška pri učitavanju računa.");
@@ -174,8 +232,14 @@ export async function selectTransactionReceipt(){
 export function selectedReceipt(){ return selected; }
 
 // Posle čuvanja transakcije: račun prelazi u transactions/<tx_id>/ pod imenom dokumenta transakcije.
+// Račun koji je već uz raniju uplatu (delimično plaćen) ostaje gde jeste; veza je transactions.receipt_id.
 export async function attachSelectedReceipt(transactionId, baseName){
     if(!selected) return null;
+    if(selected.transaction_id){
+        const name = receiptDisplayName(selected);
+        selected = null;
+        return name;
+    }
     const ext = extensionOf(selected.storage_path);
     const target = `transactions/${transactionId}/${storageKey(baseName.replace(/\.pdf$/i, ""))}${ext}`;
     await api.moveFile("receipts", selected.storage_path, target);

@@ -214,6 +214,22 @@ export function attachReceipt(id, transactionId, storagePath){
     return run(sb.from("receipts").update({ transaction_id: transactionId, storage_path: storagePath }).eq("id", id));
 }
 
+// Kompanija, broj fakture i iznos računa (sva tri ili nijedan).
+export function setReceiptClaim(id, fields){
+    return run(sb.from("receipts").update(fields).eq("id", id).select().single());
+}
+
+// ---------- Potraživanja ----------
+
+export function listReceivables(){
+    return run(sb.from("v_receivables").select("*").order("partner_name").order("uploaded_at", { ascending: false }));
+}
+
+export function listReceivablePayments(receiptId){
+    return run(sb.from("transactions").select("id, tx_date, amount, notes, created_at")
+        .eq("receipt_id", receiptId).eq("status", "active").order("tx_date").order("created_at"));
+}
+
 // ---------- Fakture ----------
 
 export function nextInvoiceNumber(year){
