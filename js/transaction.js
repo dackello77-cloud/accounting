@@ -14,6 +14,8 @@ let currentType = "";
 let partners = [];
 let banks = [];
 let lastTransaction = null;
+// PDF poslednje transakcije je već u Dokumenti → Transakcije (čuva se odmah posle SAVE).
+let pdfSaved = false;
 let saving = false;
 
 export async function openTransactionModal(type){
@@ -50,6 +52,7 @@ export function closeTransactionModal(){
 function resetTransactionModal(){
     saving = false;
     lastTransaction = null;
+    pdfSaved = false;
     ["transactionAddress", "transactionZiro", "transactionAmount", "transactionInvoice", "transactionNotes"].forEach(id => $(id).value = "");
     $("transactionPartner").value = "";
     $("transactionPartner").searchSync?.();
@@ -164,7 +167,18 @@ export async function saveTransaction(){
     btn.style.display = "none";
     btn.textContent = "SAVE";
     $("transactionDocActions").style.display = "block";
-    $("transactionDocStatus").textContent = "Transakcija je sačuvana. Izaberite: SAVE PDF, PRINT ili SAVE PDF & PRINT.";
+    // PDF se čuva odmah, da dokument postoji i kad se ne odštampa.
+    $("transactionDocStatus").textContent = "Transakcija je sačuvana. Čuvam PDF u Dokumenti → Transakcije...";
+    const t = lastTransaction;
+    try{
+        const doc = await saveTransactionPdf(t);
+        if(t !== lastTransaction) return;
+        pdfSaved = true;
+        $("transactionDocStatus").textContent = "Transakcija i PDF su sačuvani (Dokumenti → Transakcije: " + doc.fileName + "). Možete da štampate.";
+    }catch(error){
+        if(t !== lastTransaction) return;
+        $("transactionDocStatus").textContent = errorMessage(error, "PDF nije sačuvan.") + " Transakcija je sačuvana; pokušajte SAVE PDF.";
+    }
     setTimeout(() => $("transactionDocActions").scrollIntoView({ behavior: "smooth", block: "center" }), 100);
 }
 
@@ -200,10 +214,14 @@ export async function handleTransactionDocumentAction(action){
     const t = lastTransaction;
     if(!t){ status.textContent = "Prvo sačuvajte transakciju."; return; }
 
-    if(action === "save" || action === "both"){
+    if((action === "save" || action === "both") && pdfSaved){
+        status.textContent = "PDF je već sačuvan u Dokumenti → Transakcije.";
+        if(action === "save") return;
+    }else if(action === "save" || action === "both"){
         status.textContent = "Čuvam PDF...";
         try{
             const doc = await saveTransactionPdf(t);
+            pdfSaved = true;
             status.textContent = "PDF je sačuvan: " + doc.fileName;
         }catch(error){
             status.textContent = errorMessage(error, "Greška pri čuvanju PDF-a.");

@@ -76,6 +76,12 @@ export function dashboardSummary(year){
     return run(sb.rpc("dashboard_summary", { p_year: year }));
 }
 
+// Najraniji datum transakcije (za izbor godine u Godišnjem prikazu); null ako nema transakcija.
+export async function firstTransactionDate(){
+    const rows = await run(sb.from("transactions").select("tx_date").order("tx_date").limit(1));
+    return rows?.[0]?.tx_date || null;
+}
+
 // ---------- Partneri i artikli ----------
 
 export function listPartners(groupType, { activeOnly = false } = {}){

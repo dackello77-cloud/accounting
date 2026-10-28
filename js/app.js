@@ -1,6 +1,6 @@
 // Ulaz aplikacije: prijava, trajna sesija, prijava preko otvorenih prozora, povezivanje ekrana.
 import * as api from "./api.js";
-import { loadDashboard, toggleTheme, initChrome } from "./dashboard.js";
+import { loadDashboard, changeDashboardYear, toggleTheme, initChrome } from "./dashboard.js";
 import * as partners from "./partners.js";
 import * as transaction from "./transaction.js";
 import * as review from "./review.js";
@@ -68,6 +68,7 @@ api.onAuthChange((event) => {
 Object.assign(window, {
     logout: async () => { await api.signOut(); location.reload(); },
     loadDashboard,
+    changeDashboardYear,
     toggleTheme,
     openAddModal: partners.openAddModal,
     closeAddModal: partners.closeAddModal,

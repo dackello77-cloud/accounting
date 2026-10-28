@@ -3,12 +3,51 @@ import * as api from "./api.js";
 import { escapeHtml, formatMoney, formatDate, formatDateTime, TYPE_LABELS } from "./util.js";
 
 const $ = (id) => document.getElementById(id);
+// Godina u Godišnjem prikazu; null = tekuća.
+let selectedYear = null;
+let yearsFilled = false;
+
+const currentYear = () => Number(new Date().toLocaleString("en-US", { timeZone: "Europe/Belgrade", year: "numeric" }));
+
+// Godine od prve transakcije do tekuće, najnovija prva.
+async function fillYearSelect(){
+    yearsFilled = true;
+    const select = $("yearSelect");
+    const now = currentYear();
+    let first = now - 1;
+    try{
+        const date = await api.firstTransactionDate();
+        if(date) first = Math.min(Number(date.slice(0, 4)), now);
+    }catch(error){
+        console.error(error);
+    }
+    select.innerHTML = Array.from({ length: now - first + 1 }, (_, i) => now - i)
+        .map(y => `<option value="${y}">${y}</option>`).join("");
+    select.value = String(selectedYear || now);
+}
+
+export async function changeDashboardYear(value){
+    selectedYear = Number(value) || null;
+    try{
+        const data = await api.dashboardSummary(selectedYear || currentYear());
+        if(data) showYear(data.godina || {});
+    }catch(error){
+        console.error(error);
+        alert("Greška pri učitavanju godišnjeg prikaza");
+    }
+}
+
+function showYear(g){
+    const income = Number(g.ulaz || 0), tax = Number(g.porezi || 0), clients = Number(g.klijenti || 0), staff = Number(g.zaposleni || 0);
+    $("godisnjiUlaz").textContent = formatMoney(income) + " RSD";
+    $("godisnjiIzlaz").textContent = formatMoney(tax + clients + staff) + " RSD";
+    updateYearChart(income, tax, clients, staff);
+}
 
 export async function loadDashboard(){
     try{
-        const year = Number(new Date().toLocaleString("en-US", { timeZone: "Europe/Belgrade", year: "numeric" }));
-        $("yearLabel").textContent = year;
-        const data = await api.dashboardSummary(year);
+        if(!yearsFilled) fillYearSelect();
+        const data = await api.dashboardSummary(selectedYear || currentYear());
         if(!data) return;
         $("stanje").textContent = formatMoney(data.stanje) + " RSD";
         $("stanjeBanke").innerHTML = (data.banke || []).map(b =>
@@ -16,11 +55,7 @@ export async function loadDashboard(){
         $("ulaz").textContent = formatMoney(data.ulaz) + " RSD";
         $("izlaz").textContent = formatMoney(data.izlaz) + " RSD";
 
-        const g = data.godina || {};
-        const income = Number(g.ulaz || 0), tax = Number(g.porezi || 0), clients = Number(g.klijenti || 0), staff = Number(g.zaposleni || 0);
-        $("godisnjiUlaz").textContent = formatMoney(income) + " RSD";
-        $("godisnjiIzlaz").textContent = formatMoney(tax + clients + staff) + " RSD";
-        updateYearChart(income, tax, clients, staff);
+        showYear(data.godina || {});
 
         const rows = data.poslednje || [];
         $("transactionsTable").innerHTML = rows.length === 0
