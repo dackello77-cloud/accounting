@@ -797,6 +797,25 @@ tr.recv-payments > td{background:var(--surface-2)}
 .recv-payments-table tfoot td{font-weight:600}
 @media (max-width:700px){.recv-toolbar .input-group{min-width:0;width:100%}}
 
+/* Slikanje i skeniranje računa (js/scan.js) */
+.receipt-camera-btn{background:var(--accent)}
+.receipt-scan-preview{display:block;max-width:160px;max-height:220px;margin-top:10px;border:1px solid var(--border);border-radius:8px;background:#fff}
+.receipt-scan-preview[hidden]{display:none}
+#dashboard .menu .mobile-receipt-button{margin-bottom:12px}
+@media(min-width:601px){#dashboard .menu .mobile-receipt-button{display:none}}
+.scan-modal{z-index:1100;background:#000;align-items:stretch}
+.scan-box{display:flex;flex-direction:column;width:100%;height:100%;color:#fff}
+.scan-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;font-size:14px;text-align:center}
+.scan-btn{padding:10px 14px;border-radius:9px;border:1px solid #475569;background:#1e293b;color:#fff;font-weight:600;font-size:15px}
+.scan-btn.primary{background:#2563eb;border-color:#2563eb}
+.scan-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:12px}
+.scan-frame{position:relative;display:inline-block;max-width:100%;max-height:100%}
+.scan-frame canvas{display:block;max-width:100%;max-height:calc(100vh - 120px);max-height:calc(100dvh - 120px)}
+.scan-frame svg{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.scan-quad{fill:rgba(37,99,235,.18);stroke:#3b82f6}
+.scan-handle{fill:rgba(255,255,255,.35);stroke:#fff}
+.scan-status{min-height:28px;padding:4px 12px 12px;text-align:center;font-weight:600}
+
 /* Padajući meni sa pretragom (js/searchselect.js) */
 .ss-native{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;border:0!important;opacity:0}
 .input-group:has(.ss-native),.card-row>div:has(.ss-native){position:relative}
@@ -953,6 +972,7 @@ td:has(> .obracun-r-del){text-align:center}
             <button onclick="openObracunRModal()"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01"/></svg><span>Obračun - R</span></button>
             <button onclick="openObracunKModal()"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01"/></svg><span>Obračun - K</span></button>
             <button onclick="openDocumentsModal()"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg><span>Dokumenti</span></button>
+            <button class="mobile-notes-button mobile-receipt-button" onclick="openReceiptModal()"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><span>Sačuvaj račun</span></button>
             <button class="mobile-notes-button" onclick="openNotesModal()"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l5 5v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v6h6"/></svg><span>Notes / Podsetnik</span></button>
         </nav>
         <div class="sidebar-reminders">
@@ -1249,6 +1269,12 @@ td:has(> .obracun-r-del){text-align:center}
             <div id="receiptFileName" class="receipt-file-name"></div>
         </div>
 
+        <div class="input-group receipt-camera">
+            <input type="file" id="receiptCamera" accept="image/*" capture="environment" hidden onchange="handleReceiptCamera()">
+            <button type="button" class="save-btn receipt-camera-btn" onclick="document.getElementById('receiptCamera').click()">SLIKAJ RAČUN</button>
+            <img id="receiptScanPreview" class="receipt-scan-preview" alt="Skeniran račun" hidden>
+        </div>
+
         <div class="receipt-claim">
             <p class="receipt-claim-hint">Račun za plaćanje: popunite sva tri polja i račun ulazi u Potraživanja. Za običan račun ostavite prazno.</p>
             <div class="input-group"><label>Kompanija</label><select id="receiptPartner"><option value="">Učitavam...</option></select></div>
@@ -1264,6 +1290,24 @@ td:has(> .obracun-r-del){text-align:center}
     </div>
 </div>
 
+
+<!-- SKENIRANJE (fotografija računa) -->
+<div class="modal scan-modal" id="scanModal">
+    <div class="scan-box">
+        <div class="scan-head">
+            <button class="scan-btn" onclick="cancelScan()">Odustani</button>
+            <span>Pomerite uglove na ivice lista</span>
+            <button class="scan-btn primary" onclick="confirmScan()">Gotovo</button>
+        </div>
+        <div class="scan-stage">
+            <div class="scan-frame">
+                <canvas id="scanCanvas"></canvas>
+                <svg id="scanOverlay" preserveAspectRatio="none"></svg>
+            </div>
+        </div>
+        <div class="scan-status" id="scanStatus"></div>
+    </div>
+</div>
 
 <!-- POTRAŽIVANJA MODAL -->
 <div class="modal" id="receivablesModal">

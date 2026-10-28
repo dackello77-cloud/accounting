@@ -79,7 +79,7 @@ await page.evaluate(async (run) => {
 const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
 await page.click("text=Sačuvaj račun");
 await page.setInputFiles("#receiptFile", { name: `gorivo-${run}.png`, mimeType: "image/png", buffer: png });
-await page.click("#receiptModal .save-btn:not(#receiptPickerBtn)");
+await page.click("#receiptSaveBtn");
 ok(/uspešno sačuvan/.test(await waitStatus("receiptMessage", /sačuvan|Greška/)), "Sačuvaj račun: upload u inbox");
 await page.waitForTimeout(2500);
 

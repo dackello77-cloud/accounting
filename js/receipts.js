@@ -2,6 +2,7 @@
 import * as api from "./api.js";
 import { escapeHtml, errorMessage, showModal, hideModal, formatMoney, parseAmount, bindAmountInput } from "./util.js";
 import { loadDashboard } from "./dashboard.js";
+import { scanImage } from "./scan.js";
 import { receiptFileName, storageKey, shortId, checkUploadFile, contentTypeOf, extensionOf } from "./files.js";
 
 const $ = (id) => document.getElementById(id);
@@ -44,8 +45,17 @@ function supportsDeletablePicker(){
     return window.isSecureContext && typeof window.showOpenFilePicker === "function";
 }
 
+function hideScanPreview(){
+    const preview = $("receiptScanPreview");
+    if(preview.src) URL.revokeObjectURL(preview.src);
+    preview.removeAttribute("src");
+    preview.hidden = true;
+}
+
 function resetFileSelection(){
     $("receiptFile").value = "";
+    $("receiptCamera").value = "";
+    hideScanPreview();
     $("receiptFileName").textContent = "";
     localFile = null;
     fileHandle = null;
@@ -79,6 +89,7 @@ export async function chooseReceiptFile(){
         const file = await handle.getFile();
         let permission = "denied";
         if(typeof handle.requestPermission === "function") permission = await handle.requestPermission({ mode: "readwrite" });
+        hideScanPreview();
         fileHandle = handle;
         localFile = file;
         canDeleteOriginal = permission === "granted";
@@ -93,8 +104,34 @@ export async function chooseReceiptFile(){
     }
 }
 
+// Fotografija sa kamere → skeniranje (list, perspektiva, izgled skenera) → JPEG za čuvanje.
+export async function handleReceiptCamera(){
+    const photo = $("receiptCamera").files[0];
+    $("receiptCamera").value = "";
+    if(!photo) return;
+    const message = $("receiptMessage");
+    message.textContent = "";
+    let scanned;
+    try{
+        scanned = await scanImage(photo);
+    }catch(error){
+        console.error(error);
+        message.style.color = "#ef4444";
+        message.textContent = "Fotografiju nije moguće otvoriti. Pokušajte ponovo.";
+        return;
+    }
+    if(!scanned) return;
+    resetFileSelection();
+    localFile = scanned;
+    const preview = $("receiptScanPreview");
+    preview.src = URL.createObjectURL(scanned);
+    preview.hidden = false;
+    $("receiptFileName").textContent = `Skeniran račun (${(scanned.size / 1024).toLocaleString("sr-Latn-RS", { maximumFractionDigits: 0 })} KB)`;
+}
+
 export function handleReceiptFileFallback(){
     const file = $("receiptFile").files[0];
+    hideScanPreview();
     localFile = file || null;
     fileHandle = null;
     canDeleteOriginal = false;

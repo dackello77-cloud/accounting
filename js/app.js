@@ -9,6 +9,7 @@ import * as notes from "./notes.js";
 import * as receipts from "./receipts.js";
 import * as documents from "./documents.js";
 import * as receivables from "./receivables.js";
+import * as scan from "./scan.js";
 import * as obracunR from "./obracun_r.js";
 import * as obracunK from "./obracun_k.js";
 import * as invoice from "./invoice.js";
@@ -97,6 +98,9 @@ Object.assign(window, {
     chooseReceiptFile: receipts.chooseReceiptFile,
     handleReceiptFileFallback: receipts.handleReceiptFileFallback,
     saveReceipt: receipts.saveReceipt,
+    handleReceiptCamera: receipts.handleReceiptCamera,
+    cancelScan: scan.cancelScan,
+    confirmScan: scan.confirmScan,
     loadTransactionReceipts: receipts.loadTransactionReceipts,
     selectTransactionReceipt: transaction.selectTransactionReceipt,
     openReceivablesModal: receivables.openReceivablesModal,
@@ -157,6 +161,7 @@ review.initReview();
 notes.initNotes();
 documents.initDocuments();
 receipts.initReceipts();
+scan.initScan();
 receivables.initReceivables();
 initViewer();
 ["transactionPartner", "invoiceCompany", "cardPartner", "receiptPartner", "claimPartner"].forEach(id => makeSearchable(document.getElementById(id)));
