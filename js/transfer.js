@@ -2,6 +2,7 @@
 import * as api from "./api.js";
 import { escapeHtml, parseAmount, todayIso, bindAmountInput, errorMessage, showModal, hideModal } from "./util.js";
 import { loadDashboard } from "./dashboard.js";
+import { saveTransactionPdf } from "./transaction.js";
 
 const $ = (id) => document.getElementById(id);
 let banks = [];
@@ -44,8 +45,9 @@ export async function saveTransfer(){
     saving = true;
     $("transferSaveBtn").disabled = true;
     status.textContent = "Čuvam prenos...";
+    let t;
     try{
-        await api.addTransaction({
+        t = await api.addTransaction({
             tx_date: $("transferDate").value,
             type: "prenos",
             partner_name: `${from.name} → ${to.name}`,
@@ -61,9 +63,17 @@ export async function saveTransfer(){
     }finally{
         saving = false;
     }
-    status.textContent = "Prenos je sačuvan.";
     loadDashboard();
-    setTimeout(closeTransferModal, 900);
+    // PDF kao potvrda prenosa, u Dokumenti → Transakcije.
+    status.textContent = "Prenos je sačuvan. Čuvam PDF u Dokumenti → Transakcije...";
+    try{
+        const doc = await saveTransactionPdf(t, banks);
+        status.textContent = "Prenos i PDF su sačuvani (Dokumenti → Transakcije: " + doc.fileName + ").";
+    }catch(error){
+        status.textContent = errorMessage(error, "PDF nije sačuvan.") + " Prenos je sačuvan.";
+        return;
+    }
+    setTimeout(closeTransferModal, 1500);
 }
 
 export function initTransfer(){

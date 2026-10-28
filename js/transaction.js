@@ -182,29 +182,38 @@ export async function saveTransaction(){
     setTimeout(() => $("transactionDocActions").scrollIntoView({ behavior: "smooth", block: "center" }), 100);
 }
 
-export function buildTransactionDocumentHtml(t){
+// bankList: banke za nazive (prenos ih prosleđuje iz svog modala).
+export function buildTransactionDocumentHtml(t, bankList = banks){
     const row = (label, value, cls = "") => `<tr><td class="label">${label}</td><td class="${cls}">${value}</td></tr>`;
+    const bankName = (id) => escapeHtml(bankList.find(b => b.id === id)?.name);
+    const rows = t.type === "prenos"
+        ? row("Sa banke", bankName(t.bank_id)) + row("Na banku", bankName(t.to_bank_id))
+        : row("Naziv", escapeHtml(t.partner_name))
+            + row("Adresa", escapeHtml(t.address))
+            + row("Žiro račun", escapeHtml(t.bank_account))
+            + row("Banka", bankName(t.bank_id))
+            + row("Broj fakture", escapeHtml(t.invoice_number));
     return `<html><head><meta charset="UTF-8"><title>Transakcija</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111}.header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #111;padding-bottom:15px;margin-bottom:30px}.logo{width:150px}table{width:100%;border-collapse:collapse;margin-top:20px}td{border:1px solid #999;padding:12px;font-size:14px}.label{width:220px;font-weight:bold;background:#f1f5f9}.amount{font-size:22px;font-weight:bold}</style></head><body>`
-        + `<div class="header"><div><h1>Transakcija</h1><div>M&M Safety Accounting</div></div><img src="${LOGO_URL}" class="logo"></div><table>`
+        + `<div class="header"><div><h1>${t.type === "prenos" ? "Prenos između banaka" : "Transakcija"}</h1><div>M&M Safety Accounting</div></div><img src="${LOGO_URL}" class="logo"></div><table>`
         + row("Datum", escapeHtml(formatDate(t.tx_date)))
         + row("Tip", escapeHtml(TYPE_LABELS[t.type] || t.type))
-        + row("Naziv", escapeHtml(t.partner_name))
-        + row("Adresa", escapeHtml(t.address))
-        + row("Žiro račun", escapeHtml(t.bank_account))
-        + row("Banka", escapeHtml(banks.find(b => b.id === t.bank_id)?.name))
-        + row("Broj fakture", escapeHtml(t.invoice_number))
+        + rows
         + row("Notes", escapeHtml(t.notes))
         + row("Iznos", formatMoney(t.amount) + " RSD", "amount")
         + `</table></body></html>`;
 }
 
-function transactionFileName(t){
+function transactionFileName(t, bankList = banks){
+    if(t.type === "prenos"){
+        const name = (id) => bankList.find(b => b.id === id)?.name || "";
+        return documentFileName(t.tx_date, "Prenos", `${name(t.bank_id)}-${name(t.to_bank_id)}`);
+    }
     return documentFileName(t.tx_date, t.partner_name, t.invoice_number);
 }
 
 // PDF transakcije u Storage (transakcije/<id>/…); ponovno čuvanje iste transakcije prepisuje fajl.
-async function saveTransactionPdf(t){
-    const doc = await savePdfDocument({ html: buildTransactionDocumentHtml(t), category: "transakcije", fileName: transactionFileName(t), subfolder: t.id });
+export async function saveTransactionPdf(t, bankList = banks){
+    const doc = await savePdfDocument({ html: buildTransactionDocumentHtml(t, bankList), category: "transakcije", fileName: transactionFileName(t, bankList), subfolder: t.id });
     await api.setTransactionDocument(t.id, doc.path);
     return doc;
 }
