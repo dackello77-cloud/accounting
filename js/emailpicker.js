@@ -40,6 +40,14 @@ export class EmailPicker {
         this.render();
     }
 
+    // Automatski primaoci (mejlovi kupca, primaoci obračuna): zamenjuju prethodne automatske,
+    // ručno dodati ostaju.
+    setAuto(items){
+        this.selected = this.selected.filter(e => !e.auto);
+        for(const item of items) this.addRecipient({ ...item, auto: true });
+        this.render();
+    }
+
     async addNew(){
         const name = this.name.value.trim();
         const email = this.address.value.trim();

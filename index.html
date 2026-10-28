@@ -258,6 +258,12 @@ body.light-theme{background:#eaf7ff;color:#0f172a}
 .email-chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
 .email-chip{display:flex;align-items:center;gap:8px;background:#172554;border:1px solid #2563eb;border-radius:999px;padding:8px 12px;font-size:13px}
 .email-chip button{background:#ef4444;color:white;border:none;border-radius:50%;width:20px;height:20px;font-weight:bold}
+.email-list-chips{display:flex;flex-wrap:wrap;gap:8px}
+.email-list-chips:not(:empty){margin-bottom:8px}
+.email-list-add{display:flex;gap:8px}
+.email-list-add input{flex:1;min-width:0}
+.email-list-error{color:var(--neg,#ef4444);font-size:13px}
+.email-list-error:empty{display:none}
 .email-new-grid{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;margin-top:12px}
 .obracun-r-status{min-height:22px;color:#cbd5e1;font-weight:bold;margin-top:10px}
 .obracun-preview-box{background:#f8fafc;color:#111;border-radius:16px;padding:22px;border:1px solid #cbd5e1;max-height:760px;overflow:auto}
@@ -1107,10 +1113,11 @@ td:has(> .obracun-r-del){text-align:center}
                 <label class="radio-item"><input type="radio" name="addTip" value="zaposleni" onchange="handleAddTipChange()"> Zaposleni</label>
                 <label class="radio-item"><input type="radio" name="addTip" value="artikli" onchange="handleAddTipChange()"> Artikli</label>
                 <label class="radio-item"><input type="radio" name="addTip" value="banke" onchange="handleAddTipChange()"> Banke</label>
+                <label class="radio-item"><input type="radio" name="addTip" value="obracun" onchange="handleAddTipChange()"> Primaoci obračuna</label>
             </div>
         </div>
 
-        <div class="input-group">
+        <div class="input-group" id="addExistingGroup">
             <div class="label-row"><label>Postojeći unos</label><label class="show-inactive"><input type="checkbox" id="addShowInactive" onchange="reloadAddEntities()"> Prikaži neaktivne</label></div>
             <select id="addExistingEntity" onchange="selectAddEntity()">
                 <option value="">Izaberite tip za uređivanje ili ostavite za novi unos</option>
@@ -1118,7 +1125,7 @@ td:has(> .obracun-r-del){text-align:center}
         </div>
 
         <div class="partner-code" id="addCode"></div>
-        <div class="input-group"><label id="addImeLabel">Naziv</label><input type="text" id="addIme"></div>
+        <div class="input-group" id="addImeGroup"><label id="addImeLabel">Naziv</label><input type="text" id="addIme"></div>
         <div class="input-group" id="addAdresaGroup"><label id="addAdresaLabel">Adresa</label><input type="text" id="addAdresa"></div>
         <div id="addBankFields" style="display:none">
             <div class="input-group"><label>Broj računa RSD (na fakturi)</label><input type="text" id="addBankRsd"></div>
@@ -1131,10 +1138,15 @@ td:has(> .obracun-r-del){text-align:center}
                 <div class="input-group"><label id="addTaxIdLabel">PIB</label><input type="text" id="addTaxId" inputmode="numeric"></div>
                 <div class="input-group" id="addRegNoGroup"><label>Matični broj</label><input type="text" id="addRegNo" inputmode="numeric"></div>
             </div>
-            <div class="input-group"><label>Email</label><input type="email" id="addEmail" autocapitalize="none"></div>
+            <div class="input-group"><label>Email (jedan ili više; faktura ih postavlja za slanje)</label><div class="email-list" id="addEmails"></div></div>
             <div class="input-group"><label>Prioritetna banka (transakcije i faktura)</label><select id="addBank"><option value="">Podrazumevana</option></select></div>
         </div>
-        <label class="radio-item active-toggle"><input type="checkbox" id="addActive" checked> Aktivan (neaktivni se ne prikazuju u padajućim menijima)</label>
+        <div id="addPayrollFields" style="display:none">
+            <p class="receipt-claim-hint">Ovi mejlovi se automatski postavljaju pri slanju obračuna; pri slanju mogu da se dodaju ili uklone.</p>
+            <div class="input-group"><label>Obračun - R</label><div class="email-list" id="addPayrollR"></div></div>
+            <div class="input-group"><label>Obračun - K</label><div class="email-list" id="addPayrollK"></div></div>
+        </div>
+        <label class="radio-item active-toggle" id="addActiveRow"><input type="checkbox" id="addActive" checked> Aktivan (neaktivni se ne prikazuju u padajućim menijima)</label>
         <button class="save-btn" id="addSaveBtn" onclick="saveEntity()">SAVE</button>
         <div class="doc-status" id="addStatus"></div>
     </div>

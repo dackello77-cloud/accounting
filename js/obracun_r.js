@@ -71,6 +71,9 @@ export async function openObracunRModal(){
     if(!emails){
         emails = new EmailPicker({ selectId: "obracunEmailSelect", chipsId: "obracunEmailChips", nameId: "newEmailName", addressId: "newEmailAddress" });
     }
+    // Stalni primaoci obračuna (Dodaj / Uredi → Primaoci obračuna).
+    api.getPayrollRecipients("R").then(list => emails.setAuto(list.map(email => ({ name: "Obračun R", email }))))
+        .catch(error => console.error(error));
     // Nacrt se čita iz baze pri svakom otvaranju (možda je menjan na drugom uređaju ili tabu).
     // Dok se ne učita, automatsko čuvanje je isključeno da prazan obračun ne prepiše sačuvani.
     draftLoaded = false;

@@ -81,6 +81,7 @@ export function newInvoice(){
     $("invoiceAddress").value = "";
     $("invoiceZiro").value = "";
     $("invoiceBank").value = bankFor(null);
+    emails?.setAuto([]);
     $("invoiceItemRows").innerHTML = "";
     $("invoiceEmailMessage").value = "";
     $("invoiceStatus").textContent = "";
@@ -93,6 +94,7 @@ export function fillInvoiceCompany(){
     $("invoiceAddress").value = c?.address || "";
     $("invoiceZiro").value = c?.bank_account || "";
     $("invoiceBank").value = bankFor(c);
+    emails.setAuto((c?.emails || []).map(email => ({ name: c.name, email })));
     renderInvoicePreview();
 }
 

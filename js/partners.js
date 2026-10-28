@@ -1,10 +1,14 @@
 // Dodaj / Uredi: partneri po grupama, artikli i banke; deaktivacija umesto brisanja.
 import * as api from "./api.js";
 import { escapeHtml, formatMoney, parseAmount, errorMessage, showModal, hideModal } from "./util.js";
+import { EmailList } from "./emaillist.js";
 
 const $ = (id) => document.getElementById(id);
 let items = [];
 let banks = [];
+let emailList = null;
+let payrollR = null;
+let payrollK = null;
 
 function selectedTip(){
     return document.querySelector('input[name="addTip"]:checked')?.value || "";
@@ -37,7 +41,8 @@ function resetAddModal(){
 }
 
 function clearFields(){
-    ["addIme", "addAdresa", "addZiro", "addTaxId", "addRegNo", "addEmail", "addBankRsd", "addBankUsd"].forEach(id => $(id).value = "");
+    ["addIme", "addAdresa", "addZiro", "addTaxId", "addRegNo", "addBankRsd", "addBankUsd"].forEach(id => $(id).value = "");
+    emailList.set([]);
     $("addBank").value = "";
     $("addCountry").value = "RS";
     $("addActive").checked = true;
@@ -55,14 +60,28 @@ function updateCountryFields(){
 export function handleAddTipChange(){
     const isArticle = selectedTip() === "artikli";
     const isBank = selectedTip() === "banke";
+    const isPayroll = selectedTip() === "obracun";
+    ["addExistingGroup", "addCode", "addImeGroup", "addActiveRow"].forEach(id => $(id).style.display = isPayroll ? "none" : "");
+    $("addPayrollFields").style.display = isPayroll ? "block" : "none";
     $("addAdresaLabel").textContent = isArticle ? "Cena" : "Adresa";
     $("addAdresa").placeholder = isArticle ? "Unesite cenu artikla" : "";
     $("addAdresa").inputMode = isArticle ? "decimal" : "text";
-    $("addAdresaGroup").style.display = isBank ? "none" : "block";
-    $("addPartnerFields").style.display = isArticle || isBank ? "none" : "block";
+    $("addAdresaGroup").style.display = isBank || isPayroll ? "none" : "block";
+    $("addPartnerFields").style.display = isArticle || isBank || isPayroll ? "none" : "block";
     $("addBankFields").style.display = isBank ? "block" : "none";
     clearFields();
-    loadAddEntities();
+    if(isPayroll) loadPayrollRecipients();
+    else loadAddEntities();
+}
+
+async function loadPayrollRecipients(){
+    try{
+        const [r, k] = await Promise.all([api.getPayrollRecipients("R"), api.getPayrollRecipients("K")]);
+        payrollR.set(r);
+        payrollK.set(k);
+    }catch(error){
+        $("addStatus").textContent = errorMessage(error, "Greška pri učitavanju primalaca obračuna.");
+    }
 }
 
 // Neaktivni samo uz „Prikaži neaktivne“ (npr. da se ponovo aktiviraju).
@@ -112,7 +131,7 @@ export function selectAddEntity(){
     $("addCountry").value = item.country || "RS";
     $("addTaxId").value = item.tax_id || "";
     $("addRegNo").value = item.registration_no || "";
-    $("addEmail").value = item.email || "";
+    emailList.set(item.emails?.length ? item.emails : (item.email ? [item.email] : []));
     $("addBank").value = item.bank_id || "";
     updateCountryFields();
 }
@@ -121,6 +140,7 @@ export async function saveEntity(){
     const tip = selectedTip();
     const name = $("addIme").value.trim();
     if(tip === ""){ alert("Izaberite tip"); return; }
+    if(tip === "obracun"){ await savePayrollRecipients(); return; }
     if(name === ""){ alert("Unesite naziv"); return; }
 
     const index = $("addExistingEntity").value;
@@ -152,12 +172,13 @@ export async function saveEntity(){
             country,
             tax_id: $("addTaxId").value.trim() || null,
             registration_no: country === "RS" ? ($("addRegNo").value.trim() || null) : null,
-            email: $("addEmail").value.trim() || null,
+            emails: emailList.get(),
             bank_id: $("addBank").value || null,
             active: $("addActive").checked
         };
         if(country === "RS" && fields.tax_id && !/^\d{9}$/.test(fields.tax_id)){ alert("PIB mora imati 9 cifara."); return; }
         if(fields.registration_no && !/^\d{8}$/.test(fields.registration_no)){ alert("Matični broj mora imati 8 cifara."); return; }
+        if(!fields.emails){ alert("Email adresa nije ispravna."); return; }
     }
 
     const btn = $("addSaveBtn");
@@ -175,6 +196,25 @@ export async function saveEntity(){
     }
 }
 
+async function savePayrollRecipients(){
+    const r = payrollR.get(), k = payrollK.get();
+    if(!r || !k){ alert("Email adresa nije ispravna."); return; }
+    const btn = $("addSaveBtn");
+    btn.disabled = true;
+    try{
+        await Promise.all([api.savePayrollRecipients("R", r), api.savePayrollRecipients("K", k)]);
+        alert("Primaoci obračuna su sačuvani");
+        closeAddModal();
+    }catch(error){
+        $("addStatus").textContent = errorMessage(error, "Greška pri čuvanju.");
+    }finally{
+        btn.disabled = false;
+    }
+}
+
 export function initPartners(){
+    emailList = new EmailList($("addEmails"));
+    payrollR = new EmailList($("addPayrollR"));
+    payrollK = new EmailList($("addPayrollK"));
     $("addCountry").addEventListener("input", updateCountryFields);
 }

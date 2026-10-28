@@ -105,6 +105,17 @@ export function saveArticle(id, fields){
 
 // ---------- Transakcije ----------
 
+// ---------- Primaoci obračuna (R, K) ----------
+
+export async function getPayrollRecipients(type){
+    const rows = await run(sb.from("payroll_recipients").select("emails").eq("type", type));
+    return rows[0]?.emails || [];
+}
+
+export function savePayrollRecipients(type, emails){
+    return run(sb.from("payroll_recipients").upsert({ type, emails }, { onConflict: "type" }));
+}
+
 // ---------- Banke ----------
 
 export function listBanks({ activeOnly = false } = {}){
