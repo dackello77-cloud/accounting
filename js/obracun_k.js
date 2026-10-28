@@ -66,15 +66,20 @@ function savedAtText(){
     return new Date().toLocaleTimeString("sr-RS", { timeZone: "Europe/Belgrade", hour: "2-digit", minute: "2-digit" });
 }
 
+// Stalni primaoci obračuna (Dodaj / Uredi → Primaoci obračuna); ručno dodati ostaju.
+function applyPayrollRecipients(){
+    api.getPayrollRecipients("K")
+        .then(list => emails.setAuto(list.map(email => ({ name: "Obračun K", email }))))
+        .catch(error => console.error(error));
+}
+
 export async function openObracunKModal(){
     showModal("obracunKModal");
     const now = new Date();
     if(!emails){
         emails = new EmailPicker({ selectId: "obracunKEmailSelect", chipsId: "obracunKEmailChips", nameId: "newKEmailName", addressId: "newKEmailAddress" });
     }
-    // Stalni primaoci obračuna (Dodaj / Uredi → Primaoci obračuna).
-    api.getPayrollRecipients("K").then(list => emails.setAuto(list.map(email => ({ name: "Obračun K", email }))))
-        .catch(error => console.error(error));
+    applyPayrollRecipients();
     // Nacrt se čita iz baze pri svakom otvaranju (možda je menjan na drugom uređaju ili tabu).
     // Dok se ne učita, automatsko čuvanje je isključeno da prazan obračun ne prepiše sačuvani.
     draftLoaded = false;
@@ -326,7 +331,10 @@ export async function saveObracunKDraft(){
 export function toggleObracunKEmailBox(){
     const box = $("obracunKEmailBox");
     box.style.display = box.style.display === "block" ? "none" : "block";
-    if(box.style.display === "block") emails.load();
+    if(box.style.display === "block"){
+        emails.load();
+        applyPayrollRecipients();
+    }
 }
 
 function buildEmailHtml(pdfFileName){

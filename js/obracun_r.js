@@ -66,14 +66,19 @@ function getRate(){
     return rate > 0 ? rate : 0;
 }
 
+// Stalni primaoci obračuna (Dodaj / Uredi → Primaoci obračuna); ručno dodati ostaju.
+function applyPayrollRecipients(){
+    api.getPayrollRecipients("R")
+        .then(list => emails.setAuto(list.map(email => ({ name: "Obračun R", email }))))
+        .catch(error => console.error(error));
+}
+
 export async function openObracunRModal(){
     showModal("obracunRModal");
     if(!emails){
         emails = new EmailPicker({ selectId: "obracunEmailSelect", chipsId: "obracunEmailChips", nameId: "newEmailName", addressId: "newEmailAddress" });
     }
-    // Stalni primaoci obračuna (Dodaj / Uredi → Primaoci obračuna).
-    api.getPayrollRecipients("R").then(list => emails.setAuto(list.map(email => ({ name: "Obračun R", email }))))
-        .catch(error => console.error(error));
+    applyPayrollRecipients();
     // Nacrt se čita iz baze pri svakom otvaranju (možda je menjan na drugom uređaju ili tabu).
     // Dok se ne učita, automatsko čuvanje je isključeno da prazan obračun ne prepiše sačuvani.
     draftLoaded = false;
@@ -304,6 +309,7 @@ export function toggleObracunEmailBox(){
     box.style.display = box.style.display === "block" ? "none" : "block";
     if(box.style.display === "block"){
         emails.load();
+        applyPayrollRecipients();
         box.scrollIntoView({ behavior: "smooth", block: "center" });
     }
 }
