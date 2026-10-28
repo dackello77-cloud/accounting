@@ -550,12 +550,14 @@ body:not(.light-theme) #dashboard .sidebar-logo{background:#fff;border-radius:8p
 #dashboard .menu button{display:flex;align-items:center;gap:11px;width:100%;margin:0 0 2px;padding:9px 12px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-size:14px;font-weight:500;text-align:left;box-shadow:none}
 #dashboard .menu button:hover{background:var(--surface-2);color:var(--text)}
 #dashboard .menu button.active{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent)}
-/* Istaknute stavke menija: Transakcije svetlo plava, Faktura crvena. */
+/* Istaknute stavke menija: Transakcije svetlo plava, Faktura crvena, Dokumenti zelena. */
 #dashboard .menu button.nav-transakcije{--nav-c:#38bdf8;color:var(--nav-c);background:color-mix(in srgb,var(--nav-c) 12%,transparent)}
 #dashboard .menu button.nav-faktura{--nav-c:#ef4444;color:var(--nav-c);background:color-mix(in srgb,var(--nav-c) 12%,transparent)}
+#dashboard .menu button.nav-dokumenti{--nav-c:#22c55e;color:var(--nav-c);background:color-mix(in srgb,var(--nav-c) 12%,transparent)}
 body.light-theme #dashboard .menu button.nav-transakcije{--nav-c:#0284c7}
 body.light-theme #dashboard .menu button.nav-faktura{--nav-c:#dc2626}
-#dashboard .menu button.nav-transakcije:hover,#dashboard .menu button.nav-faktura:hover{color:var(--nav-c);background:color-mix(in srgb,var(--nav-c) 22%,transparent)}
+body.light-theme #dashboard .menu button.nav-dokumenti{--nav-c:#16a34a}
+#dashboard .menu button.nav-transakcije:hover,#dashboard .menu button.nav-faktura:hover,#dashboard .menu button.nav-dokumenti:hover{color:var(--nav-c);background:color-mix(in srgb,var(--nav-c) 22%,transparent)}
 #dashboard .nav-icon{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 #dashboard .menu-group-btn::after{content:"";right:14px;width:7px;height:7px;border-right:1.8px solid currentColor;border-bottom:1.8px solid currentColor;transform:rotate(45deg) translateY(-3px)}
 #dashboard .menu-group-btn[aria-expanded="true"]::after{transform:rotate(225deg) translateY(-1px)}
@@ -994,7 +996,7 @@ td:has(> .obracun-r-del){text-align:center}
             <button class="nav-faktura" onclick="openInvoiceModal()"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg><span>Faktura</span></button>
             <button onclick="openObracunRModal()"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01"/></svg><span>Obračun - R</span></button>
             <button onclick="openObracunKModal()"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01"/></svg><span>Obračun - K</span></button>
-            <button onclick="openDocumentsModal()"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg><span>Dokumenti</span></button>
+            <button class="nav-dokumenti" onclick="openDocumentsModal()"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg><span>Dokumenti</span></button>
             <button class="mobile-notes-button mobile-receipt-button" onclick="openReceiptModal()"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><span>Sačuvaj račun</span></button>
             <button class="mobile-notes-button" onclick="openNotesModal()"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l5 5v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v6h6"/></svg><span>Notes / Podsetnik</span></button>
         </nav>
