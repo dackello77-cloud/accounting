@@ -11,6 +11,8 @@ export async function loadDashboard(){
         const data = await api.dashboardSummary(year);
         if(!data) return;
         $("stanje").textContent = formatMoney(data.stanje) + " RSD";
+        $("stanjeBanke").innerHTML = (data.banke || []).map(b =>
+            `<span>${escapeHtml(b.name)}<strong>${formatMoney(b.stanje)}</strong></span>`).join("");
         $("ulaz").textContent = formatMoney(data.ulaz) + " RSD";
         $("izlaz").textContent = formatMoney(data.izlaz) + " RSD";
 
@@ -28,7 +30,7 @@ export async function loadDashboard(){
                 <td><span class="badge b-${escapeHtml(t.type)}">${escapeHtml(TYPE_LABELS[t.type] || t.type)}</span></td>
                 <td class="strong">${escapeHtml(t.partner_name)}</td>
                 <td class="muted">${escapeHtml(t.invoice_number)}</td>
-                <td class="num ${t.type === "ulaz" ? "pos" : "neg"}">${Number(t.amount) === 0 ? "" : t.type === "ulaz" ? "+" : "−"}${formatMoney(t.amount)}</td>
+                <td class="num ${t.type === "ulaz" ? "pos" : t.type === "prenos" ? "muted" : "neg"}">${Number(t.amount) === 0 || t.type === "prenos" ? "" : t.type === "ulaz" ? "+" : "−"}${formatMoney(t.amount)}</td>
             </tr>`).join("");
     }catch(error){
         console.error(error);

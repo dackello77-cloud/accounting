@@ -7,9 +7,8 @@ import { savePdfDocument } from "./docsave.js";
 import { EmailPicker } from "./emailpicker.js";
 
 const $ = (id) => document.getElementById(id);
-const BANK_ACCOUNTS = { RSD: "160-6000001770008-96", USD: "160-6000001770455-16" };
-
 let companies = [];
+let banks = [];
 let articles = [];
 let invoiceId = null;      // posle prvog čuvanja
 let proposedNumber = "";   // predlog iz next_invoice_number
@@ -18,6 +17,13 @@ let saving = null;         // da SAVE PDF i SEND EMAIL ne krenu dvaput istovreme
 
 function currency(){ return document.querySelector('input[name="invoiceCurrency"]:checked')?.value || "RSD"; }
 function selectedCompany(){ return companies.find(c => c.id === $("invoiceCompany").value) || null; }
+function selectedBank(){ return banks.find(b => b.id === $("invoiceBank").value) || null; }
+
+// Prioritetna banka kompanije, inače podrazumevana (Intesa).
+function bankFor(company){
+    const id = company?.bank_id;
+    return banks.some(b => b.id === id && b.active) ? id : (banks.find(b => b.is_default) || banks[0])?.id || "";
+}
 
 export function openInvoiceModal(){
     showModal("invoiceModal");
@@ -50,6 +56,11 @@ async function loadInitialData(){
             companies.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join("");
         $("invoiceCompany").value = selected;
         $("invoiceCompany").searchSync?.();
+        const bank = $("invoiceBank").value;
+        banks = await api.listBanks();
+        $("invoiceBank").innerHTML = banks.filter(b => b.active || b.id === bank)
+            .map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name)}</option>`).join("");
+        $("invoiceBank").value = bank || bankFor(selectedCompany());
         articles = await api.listArticles({ activeOnly: true });
         $("invoiceArticleList").innerHTML = articles.map(a => `<option value="${escapeHtml(a.name)}"></option>`).join("");
         emails.load();
@@ -69,6 +80,7 @@ export function newInvoice(){
     $("invoiceCompany").searchSync?.();
     $("invoiceAddress").value = "";
     $("invoiceZiro").value = "";
+    $("invoiceBank").value = bankFor(null);
     $("invoiceItemRows").innerHTML = "";
     $("invoiceEmailMessage").value = "";
     $("invoiceStatus").textContent = "";
@@ -80,6 +92,7 @@ export function fillInvoiceCompany(){
     const c = selectedCompany();
     $("invoiceAddress").value = c?.address || "";
     $("invoiceZiro").value = c?.bank_account || "";
+    $("invoiceBank").value = bankFor(c);
     renderInvoicePreview();
 }
 
@@ -144,6 +157,8 @@ function buildInvoiceHtml(){
     const ziro = $("invoiceZiro").value || "";
     const taxId = company?.tax_id || "";
     const items = getItems();
+    const bank = selectedBank();
+    const accounts = [[bank?.account_rsd, "RSD"], [bank?.account_usd, "USD"]].filter(([a]) => a).map(([a, c]) => `${escapeHtml(a)} ${c}`).join("<br>");
     let total = 0;
 
     let rows = items.map((item, i) => {
@@ -212,7 +227,7 @@ td{border:1px solid #374151;padding:8px;font-size:11px;vertical-align:top;color:
         <tbody>${rows}<tr class="total-row"><td colspan="3" class="right">Ukupno / <span class="en">Total:</span></td><td class="right">${formatMoney(total)}</td></tr></tbody>
     </table>
     <div class="summary"><span>Ukupno u ${cur} / <span class="en">Total in ${cur}</span></span><span>${formatMoney(total)}</span></div>
-    <div class="bank">Banka / <span class="en">Bank:</span> Banca Intesa<br>Broj Računa / <span class="en">Account number:</span> ${BANK_ACCOUNTS.RSD} RSD<br>${BANK_ACCOUNTS.USD} USD</div>
+    <div class="bank">Banka / <span class="en">Bank:</span> ${escapeHtml(bank?.name)}<br>Broj Računa / <span class="en">Account number:</span> ${accounts}</div>
     <div class="footer">Dokument je izdan elektronskim putem, te je valjan bez pečata i potpisa. /<br><span class="en">The document was issued electronically and is valid without a seal or signature.</span></div>
     <div class="responsible"><strong>Podaci o odgovornom licu / <span class="en">Data about the responsible person</span></strong><br>Dalibor Spasic<br>Milenka Hadzica 015</div>
 </div>
@@ -246,6 +261,10 @@ async function persistInvoice(){
     // Nova faktura sa nepromenjenim predlogom: broj dodeljuje baza (bez duplikata).
     const number = !invoiceId && typed === proposedNumber ? null : (typed || null);
     const cur = currency();
+    const bank = selectedBank();
+    if(!bank) throw new UserError("Izaberite banku za uplatu.");
+    const account = cur === "USD" ? bank.account_usd : bank.account_rsd;
+    if(!account) throw new UserError(`Za ${bank.name} nije upisan ${cur} račun (Dodaj / Uredi → Banke).`);
 
     const result = await api.saveInvoice({
         id: invoiceId || crypto.randomUUID(),
@@ -255,7 +274,8 @@ async function persistInvoice(){
         due_date: $("invoiceDueDate").value || null,
         place: $("invoicePlace").value,
         currency: cur,
-        bank_account: BANK_ACCOUNTS[cur],
+        bank_account: account,
+        bank_id: bank.id,
         partner_id: company.id,
         company_name: company.name,
         company_address: $("invoiceAddress").value,

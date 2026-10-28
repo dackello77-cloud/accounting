@@ -12,6 +12,7 @@ import { focusSearchable } from "./searchselect.js";
 const $ = (id) => document.getElementById(id);
 let currentType = "";
 let partners = [];
+let banks = [];
 let lastTransaction = null;
 let saving = false;
 
@@ -22,7 +23,23 @@ export async function openTransactionModal(type){
     $("transactionModal").classList.toggle("no-receipt", type !== "klijenti");
     resetTransactionModal();
     showModal("transactionModal");
-    await loadPartners();
+    await Promise.all([loadPartners(), loadBanks()]);
+}
+
+// Podrazumevana banka (Intesa), osim kad partner ima prioritetnu.
+function defaultBankId(partner){
+    const id = partner?.bank_id;
+    return banks.some(b => b.id === id) ? id : (banks.find(b => b.is_default) || banks[0])?.id || "";
+}
+
+async function loadBanks(){
+    try{
+        banks = await api.listBanks({ activeOnly: true });
+        $("transactionBank").innerHTML = banks.map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name)}</option>`).join("");
+        $("transactionBank").value = defaultBankId(partners.find(x => x.id === $("transactionPartner").value));
+    }catch(error){
+        $("transactionDocStatus").textContent = errorMessage(error, "Greška pri učitavanju banaka.");
+    }
 }
 
 export function closeTransactionModal(){
@@ -37,6 +54,7 @@ function resetTransactionModal(){
     $("transactionPartner").value = "";
     $("transactionPartner").searchSync?.();
     $("transactionDate").value = todayIso();
+    $("transactionBank").value = defaultBankId(null);
     $("transactionDocActions").style.display = "none";
     $("transactionDocStatus").textContent = "";
     const btn = $("transactionSaveBtn");
@@ -64,6 +82,7 @@ export function fillEntityData(){
     const p = partners.find(x => x.id === $("transactionPartner").value);
     $("transactionAddress").value = p?.address || "";
     $("transactionZiro").value = p?.bank_account || "";
+    $("transactionBank").value = defaultBankId(p);
 }
 
 // Račun iz Potraživanja popunjava kompaniju, broj fakture i preostali iznos (sve se može promeniti).
@@ -99,6 +118,7 @@ export async function saveTransaction(){
     if(amountText.trim() === ""){ alert("Unesite iznos"); return; }
     if(amount === null){ alert("Unesite ispravan iznos"); return; }
     if(!txDate){ alert("Unesite datum"); return; }
+    if(!$("transactionBank").value){ alert("Izaberite banku"); return; }
 
     saving = true;
     const btn = $("transactionSaveBtn");
@@ -117,7 +137,8 @@ export async function saveTransaction(){
             invoice_number: $("transactionInvoice").value.trim() || null,
             amount,
             notes: $("transactionNotes").value.trim() || null,
-            receipt_id: selectedReceipt()?.id || null
+            receipt_id: selectedReceipt()?.id || null,
+            bank_id: $("transactionBank").value
         });
     }catch(error){
         $("transactionDocStatus").textContent = errorMessage(error, "Greška pri čuvanju.");
@@ -156,6 +177,7 @@ export function buildTransactionDocumentHtml(t){
         + row("Naziv", escapeHtml(t.partner_name))
         + row("Adresa", escapeHtml(t.address))
         + row("Žiro račun", escapeHtml(t.bank_account))
+        + row("Banka", escapeHtml(banks.find(b => b.id === t.bank_id)?.name))
         + row("Broj fakture", escapeHtml(t.invoice_number))
         + row("Notes", escapeHtml(t.notes))
         + row("Iznos", formatMoney(t.amount) + " RSD", "amount")

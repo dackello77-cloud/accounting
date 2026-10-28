@@ -10,6 +10,7 @@ import * as receipts from "./receipts.js";
 import * as documents from "./documents.js";
 import * as receivables from "./receivables.js";
 import * as scan from "./scan.js";
+import * as transfer from "./transfer.js";
 import * as obracunR from "./obracun_r.js";
 import * as obracunK from "./obracun_k.js";
 import * as invoice from "./invoice.js";
@@ -80,6 +81,9 @@ Object.assign(window, {
     saveTransaction: transaction.saveTransaction,
     newTransactionAfterSave: transaction.newTransactionAfterSave,
     handleTransactionDocumentAction: transaction.handleTransactionDocumentAction,
+    openTransferModal: transfer.openTransferModal,
+    closeTransferModal: transfer.closeTransferModal,
+    saveTransfer: transfer.saveTransfer,
     openReviewModal: review.openReviewModal,
     closeReviewModal: review.closeReviewModal,
     loadReview: review.loadReview,
@@ -162,6 +166,7 @@ notes.initNotes();
 documents.initDocuments();
 receipts.initReceipts();
 scan.initScan();
+transfer.initTransfer();
 receivables.initReceivables();
 initViewer();
 ["transactionPartner", "invoiceCompany", "cardPartner", "receiptPartner", "claimPartner"].forEach(id => makeSearchable(document.getElementById(id)));

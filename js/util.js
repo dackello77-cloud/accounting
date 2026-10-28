@@ -1,6 +1,6 @@
 // Zajedničke pomoćne funkcije: format novca i datuma, escape, štampa.
 
-export const TYPE_LABELS = { ulaz: "Ulaz", porezi: "Porezi", klijenti: "Klijenti", zaposleni: "Zaposleni" };
+export const TYPE_LABELS = { ulaz: "Ulaz", porezi: "Porezi", klijenti: "Klijenti", zaposleni: "Zaposleni", prenos: "Prenos" };
 export const TYPES = Object.keys(TYPE_LABELS);
 
 export function escapeHtml(value){

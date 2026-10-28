@@ -105,6 +105,20 @@ export function saveArticle(id, fields){
 
 // ---------- Transakcije ----------
 
+// ---------- Banke ----------
+
+export function listBanks({ activeOnly = false } = {}){
+    let q = sb.from("banks").select("*").order("position").order("name");
+    if(activeOnly) q = q.eq("active", true);
+    return run(q);
+}
+
+export function saveBank(id, fields){
+    return id
+        ? run(sb.from("banks").update(fields).eq("id", id).select().single())
+        : run(sb.from("banks").insert(fields).select().single());
+}
+
 export function addTransaction(fields){
     return run(sb.from("transactions").insert(fields).select().single());
 }
