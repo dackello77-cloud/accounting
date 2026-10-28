@@ -11,7 +11,7 @@ let corners = [];        // [tl, tr, br, bl] u koordinatama fotografije
 let dragging = -1;
 let finish = null;
 
-// Vraća skeniran JPEG (File) ili null ako korisnik odustane.
+// Vraća { pdf: File, preview: Blob (JPEG) } ili null ako korisnik odustane.
 export async function scanImage(file){
     source = await loadImage(file);
     corners = detectCorners(source);
@@ -33,8 +33,9 @@ export async function confirmScan(){
     await new Promise(r => setTimeout(r, 30));
     try{
         const canvas = scanLook(warp(grayOf(source), source.width, source.height, corners));
-        const blob = await new Promise(r => canvas.toBlob(r, "image/jpeg", 0.85));
-        close(new File([blob], "sken.jpg", { type: "image/jpeg" }));
+        const jpeg = await new Promise(r => canvas.toBlob(r, "image/jpeg", 0.85));
+        const pdf = jpegToPdf(new Uint8Array(await jpeg.arrayBuffer()), canvas.width, canvas.height);
+        close({ pdf: new File([pdf], "sken.pdf", { type: "application/pdf" }), preview: jpeg });
     }catch(error){
         console.error(error);
         $("scanStatus").textContent = "Obrada slike nije uspela. Pokušajte ponovo.";
@@ -47,6 +48,32 @@ function close(result){
     const done = finish;
     finish = null;
     done?.(result);
+}
+
+// PDF sa jednom stranom: JPEG preko cele strane, širina A4 (595 pt), visina po listu.
+function jpegToPdf(jpeg, w, h){
+    const pw = 595.28, ph = +(pw * h / w).toFixed(2);
+    const enc = new TextEncoder();
+    const content = `q ${pw} 0 0 ${ph} 0 0 cm /Im0 Do Q`;
+    const parts = [], offsets = [];
+    let length = 0;
+    const add = (chunk) => { const b = typeof chunk === "string" ? enc.encode(chunk) : chunk; parts.push(b); length += b.length; };
+    const obj = (n, body, stream) => {
+        offsets[n] = length;
+        add(`${n} 0 obj\n${body}\n`);
+        if(stream){ add("stream\n"); add(stream); add("\nendstream\n"); }
+        add("endobj\n");
+    };
+    add("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
+    obj(1, "<< /Type /Catalog /Pages 2 0 R >>");
+    obj(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
+    obj(3, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pw} ${ph}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`);
+    obj(4, `<< /Type /XObject /Subtype /Image /Width ${w} /Height ${h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>`, jpeg);
+    obj(5, `<< /Length ${content.length} >>`, enc.encode(content));
+    const xref = length;
+    add(`xref\n0 6\n0000000000 65535 f \n${offsets.slice(1).map(o => String(o).padStart(10, "0") + " 00000 n \n").join("")}`);
+    add(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+    return new Blob(parts, { type: "application/pdf" });
 }
 
 // <img> poštuje EXIF orijentaciju telefona; slika se smanjuje na WORK_MAX.

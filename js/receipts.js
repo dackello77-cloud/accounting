@@ -104,7 +104,7 @@ export async function chooseReceiptFile(){
     }
 }
 
-// Fotografija sa kamere → skeniranje (list, perspektiva, izgled skenera) → JPEG za čuvanje.
+// Fotografija sa kamere → skeniranje (list, perspektiva, izgled skenera) → PDF za čuvanje.
 export async function handleReceiptCamera(){
     const photo = $("receiptCamera").files[0];
     $("receiptCamera").value = "";
@@ -122,11 +122,11 @@ export async function handleReceiptCamera(){
     }
     if(!scanned) return;
     resetFileSelection();
-    localFile = scanned;
+    localFile = scanned.pdf;
     const preview = $("receiptScanPreview");
-    preview.src = URL.createObjectURL(scanned);
+    preview.src = URL.createObjectURL(scanned.preview);
     preview.hidden = false;
-    $("receiptFileName").textContent = `Skeniran račun (${(scanned.size / 1024).toLocaleString("sr-Latn-RS", { maximumFractionDigits: 0 })} KB)`;
+    $("receiptFileName").textContent = `Skeniran račun, PDF (${(scanned.pdf.size / 1024).toLocaleString("sr-Latn-RS", { maximumFractionDigits: 0 })} KB)`;
 }
 
 export function handleReceiptFileFallback(){
