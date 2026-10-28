@@ -5,7 +5,7 @@ import { CATEGORIES, storageKey, shortId, checkUploadFile, contentTypeOf } from 
 import { openStorageFile } from "./docsave.js";
 import { openViewer } from "./viewer.js";
 import { receiptDisplayName } from "./receipts.js";
-import { openClaimEditor } from "./receivables.js";
+import { openClaimEditor, deleteReceiptConfirmed } from "./receivables.js";
 
 const $ = (id) => document.getElementById(id);
 let current = "";
@@ -63,7 +63,7 @@ async function loadFiles(){
             : files.map((f, i) => `<tr>
                 <td><button class="doc-name-btn" data-open="${i}">${escapeHtml(f.name)}</button>${f.note ? `<div class="doc-note">${escapeHtml(f.note)}</div>` : ""}</td>
                 <td>${escapeHtml(formatDateTime(f.at))}</td>
-                <td class="doc-actions">${f.receipt ? `<button data-claim="${i}">${f.receipt.amount != null ? "Podaci" : "Unesi podatke"}</button>` : ""}<button data-open="${i}">Otvori</button><button data-download="${i}">Preuzmi</button></td>
+                <td class="doc-actions">${f.receipt ? `<button data-claim="${i}">${f.receipt.amount != null ? "Podaci" : "Unesi podatke"}</button><button class="doc-delete" data-delete="${i}">Obriši</button>` : ""}<button data-open="${i}">Otvori</button><button data-download="${i}">Preuzmi</button></td>
             </tr>`).join("");
     }catch(error){
         list.innerHTML = `<tr><td colspan="3">${escapeHtml(errorMessage(error, "Greška pri učitavanju dokumenata."))}</td></tr>`;
@@ -103,6 +103,8 @@ export function initDocuments(){
     $("documentsList").addEventListener("click", async (event) => {
         const claim = event.target.closest("button[data-claim]");
         if(claim){ openClaimEditor(files[Number(claim.dataset.claim)].receipt, loadFiles); return; }
+        const del = event.target.closest("button[data-delete]");
+        if(del){ deleteReceiptConfirmed(files[Number(del.dataset.delete)].receipt, loadFiles); return; }
         const open = event.target.closest("button[data-open]");
         const download = event.target.closest("button[data-download]");
         const i = Number((open || download)?.dataset.open ?? (open || download)?.dataset.download);

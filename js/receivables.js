@@ -67,7 +67,7 @@ export function render(){
             <td class="num">${formatMoney(r.paid)}</td>
             <td class="num ${Number(r.remaining) > 0 ? "red" : ""}">${formatMoney(r.remaining)}</td>
             <td><span class="recv-status s-${escapeHtml(r.status)}">${escapeHtml(STATUS_LABELS[r.status] || r.status)}</span><div class="doc-note">${escapeHtml(formatDate(r.last_payment))}</div></td>
-            <td class="recv-actions"><button class="row-btn" data-payments="${i}">Uplate (${Number(r.payments)})</button><button class="row-btn" data-file="${i}">Račun</button><button class="row-btn" data-edit="${i}">Izmeni</button></td>
+            <td class="recv-actions"><button class="row-btn" data-payments="${i}">Uplate (${Number(r.payments)})</button><button class="row-btn" data-file="${i}">Račun</button><button class="row-btn" data-edit="${i}">Izmeni</button>${Number(r.payments) === 0 ? `<button class="row-btn danger" data-delete="${i}">Obriši</button>` : ""}</td>
         </tr>`).join("");
 }
 
@@ -149,6 +149,20 @@ export async function saveClaim(){
     loadDashboard();
 }
 
+// Briše se samo račun bez uplata (proverava i baza); posle brisanja nestaje iz svih lista.
+export async function deleteReceiptConfirmed(receipt, onDeleted){
+    const label = receipt.amount != null ? `${receipt.partner_name || ""} br. ${receipt.invoice_number}` : receiptDisplayName(receipt);
+    if(!confirm(`Obrisati račun ${label}?`)) return;
+    try{
+        await api.deleteReceipt(receipt.id);
+    }catch(error){
+        alert(errorMessage(error, "Greška pri brisanju računa."));
+        return;
+    }
+    await onDeleted?.();
+    loadDashboard();
+}
+
 export function initReceivables(){
     bindAmountInput($("claimAmount"));
     $("receivablesTable").addEventListener("click", (event) => {
@@ -160,5 +174,6 @@ export function initReceivables(){
             openViewer([{ bucket: "receipts", path: r.storage_path, name: receiptDisplayName(r) }], 0);
         }
         else if(btn.dataset.edit !== undefined) openClaimEditor(shown[Number(btn.dataset.edit)], loadReceivables);
+        else if(btn.dataset.delete !== undefined) deleteReceiptConfirmed(shown[Number(btn.dataset.delete)], loadReceivables);
     });
 }

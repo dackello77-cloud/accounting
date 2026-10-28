@@ -97,6 +97,26 @@ select pg_temp.expect((select status from public.v_receivables where id = '40000
 update public.receipts set partner_id = null, invoice_number = null, amount = null where id = '40000000-0000-0000-0000-000000000002';
 select pg_temp.expect((select count(*) from public.v_receivables) = 1, 'bez podataka → van potraživanja');
 
+-- Brisanje (označavanje): samo bez aktivnih uplata
+select pg_temp.expect_error($$update public.receipts set active = false where id = '40000000-0000-0000-0000-000000000001'$$, 'račun sa uplatama se ne briše');
+insert into public.receipts (id, storage_path, partner_id, invoice_number, amount) values
+  ('40000000-0000-0000-0000-000000000003', 'inbox/g/9.pdf', '10000000-0000-0000-0000-000000000002', '9', 80.00);
+update public.receipts set active = false where id = '40000000-0000-0000-0000-000000000003';
+select pg_temp.expect((select deleted_at is not null from public.receipts where id = '40000000-0000-0000-0000-000000000003'), 'brisanje beleži deleted_at');
+select pg_temp.expect(not exists (select 1 from public.v_receivables where id = '40000000-0000-0000-0000-000000000003'), 'obrisan račun nije u potraživanjima');
+select pg_temp.expect_error($$insert into public.transactions (tx_date, type, partner_name, amount, receipt_id) values ('2026-10-22', 'klijenti', 'Preventiva', 10, '40000000-0000-0000-0000-000000000003')$$, 'uplata na obrisan račun odbijena');
+select pg_temp.expect_error($$update public.receipts set active = true where id = '40000000-0000-0000-0000-000000000003'$$, 'obrisan račun se ne vraća');
+-- Posle storna svih uplata račun može da se obriše
+insert into public.receipts (id, storage_path, partner_id, invoice_number, amount) values
+  ('40000000-0000-0000-0000-000000000004', 'inbox/h/10.pdf', '10000000-0000-0000-0000-000000000002', '10', 90.00);
+insert into public.transactions (id, tx_date, type, partner_name, amount, receipt_id) values
+  ('20000000-0000-0000-0000-000000000009', '2026-10-22', 'klijenti', 'Preventiva', 40, '40000000-0000-0000-0000-000000000004');
+select public.storno_transaction('20000000-0000-0000-0000-000000000009');
+update public.receipts set active = false where id = '40000000-0000-0000-0000-000000000004';
+select pg_temp.expect((select not active from public.receipts where id = '40000000-0000-0000-0000-000000000004'), 'posle storna uplate brisanje dozvoljeno');
+delete from public.receipts;
+select pg_temp.expect((select count(*) from public.receipts) = 5, 'pravo brisanje (delete) i dalje odbijeno');
+
 -- ---------- Neaktivan i anon ne vide potraživanja ----------
 reset role;
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000b', 'authenticated');

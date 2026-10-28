@@ -203,11 +203,11 @@ export function addReceipt(fields){
 }
 
 export function listInboxReceipts(){
-    return run(sb.from("receipts").select("*").is("transaction_id", null).order("uploaded_at", { ascending: false }));
+    return run(sb.from("receipts").select("*").eq("active", true).is("transaction_id", null).order("uploaded_at", { ascending: false }));
 }
 
 export function listAllReceipts(){
-    return run(sb.from("receipts").select("*").order("uploaded_at", { ascending: false }));
+    return run(sb.from("receipts").select("*").eq("active", true).order("uploaded_at", { ascending: false }));
 }
 
 export function attachReceipt(id, transactionId, storagePath){
@@ -217,6 +217,11 @@ export function attachReceipt(id, transactionId, storagePath){
 // Kompanija, broj fakture i iznos računa (sva tri ili nijedan).
 export function setReceiptClaim(id, fields){
     return run(sb.from("receipts").update(fields).eq("id", id).select().single());
+}
+
+// Brisanje = označavanje; baza odbija račun sa aktivnim uplatama.
+export function deleteReceipt(id){
+    return run(sb.from("receipts").update({ active: false }).eq("id", id));
 }
 
 // ---------- Potraživanja ----------
