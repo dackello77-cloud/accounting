@@ -96,7 +96,7 @@ async function loadHistory(){
             : reports.map(r => `<tr>
                 <td>${escapeHtml(formatDateTime(r.sent_at))}</td>
                 <td>${escapeHtml(String(r.doc_count))}</td>
-                <td>${escapeHtml((r.recipients || []).join(", "))}</td>
+                <td>${r.recipients?.length ? escapeHtml(r.recipients.join(", ")) : "Početno stanje (označeno kao poslato, mejl nije slat)"}</td>
             </tr>`).join("");
     }catch(error){
         box.innerHTML = `<tr><td colspan="3">${escapeHtml(errorMessage(error, "Greška pri učitavanju istorije."))}</td></tr>`;
