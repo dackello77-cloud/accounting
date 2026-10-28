@@ -640,7 +640,8 @@ body:not(.light-theme) #dashboard .sidebar-logo{background:#fff;border-radius:8p
 #dashboard .qa-dot.b-faktura{background:#dc2626}#dashboard .qa-dot.b-racun{background:var(--muted)}
 #dashboard #sideReminderAlerts{display:grid;gap:8px}
 #dashboard #sideReminderAlerts .reminder-alert-item{margin:0;background:var(--surface-2);border:1px solid var(--border);border-radius:9px}
-#dashboard .pending-count{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
+#dashboard .pending-count{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;width:100%;padding:0;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
+#dashboard .pending-count:hover strong{color:var(--accent)}
 #dashboard .pending-count strong{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums}
 #dashboard .pending-count span{font-size:13px;color:var(--muted);line-height:1.35}
 #dashboard .side-btn{width:100%;padding:10px;border:0;border-radius:9px;background:var(--accent);color:#fff;font-weight:600;font-size:14px}
@@ -1022,8 +1023,8 @@ td:has(> .obracun-r-del){text-align:center}
                 </section>
                 <section class="panel side-panel pending-panel">
                     <h2>Računi na čekanju</h2>
-                    <div class="pending-count"><strong id="pendingReceipts">–</strong><span>čeka povezivanje sa transakcijom</span></div>
-                    <button class="side-btn" onclick="openReceiptModal()">Otvori račune</button>
+                    <button class="pending-count" onclick="openPendingReceipts()" title="Prikaži račune na čekanju"><strong id="pendingReceipts">–</strong><span>čeka povezivanje sa transakcijom</span></button>
+                    <button class="side-btn" onclick="openPendingReceipts()">Otvori račune</button>
                 </section>
             </aside>
         </div>

@@ -1,6 +1,7 @@
 // Sačuvaj račun (upload u inbox) i izbor računa uz transakciju.
 import * as api from "./api.js";
 import { escapeHtml, errorMessage, showModal, hideModal } from "./util.js";
+import { loadDashboard } from "./dashboard.js";
 import { receiptFileName, storageKey, shortId, checkUploadFile, contentTypeOf, extensionOf } from "./files.js";
 
 const $ = (id) => document.getElementById(id);
@@ -89,6 +90,7 @@ export async function saveReceipt(){
     try{
         await api.uploadFile("receipts", path, file, { contentType: contentTypeOf(file) });
         await api.addReceipt({ storage_path: path, original_name: file.name, note: note || null });
+        loadDashboard();
     }catch(error){
         message.style.color = "#ef4444";
         message.textContent = errorMessage(error, "Greška pri čuvanju računa.");

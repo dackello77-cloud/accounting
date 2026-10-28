@@ -9,6 +9,9 @@ import { receiptDisplayName } from "./receipts.js";
 const $ = (id) => document.getElementById(id);
 let current = "";
 let files = [];
+// Računi na čekanju (inbox): otvaraju se sa početnog ekrana, nisu folder u mreži.
+const PENDING = { label: "Računi na čekanju", upload: false };
+const categoryOf = (key) => key === "racuni_cekanje" ? PENDING : CATEGORIES[key];
 
 export function openDocumentsModal(){
     $("documentsGrid").innerHTML = Object.entries(CATEGORIES).map(([key, c]) =>
@@ -18,11 +21,16 @@ export function openDocumentsModal(){
     showModal("documentsModal");
 }
 
+export async function openPendingReceipts(){
+    openDocumentsModal();
+    await showCategory("racuni_cekanje");
+}
+
 export function closeDocumentsModal(){ hideModal("documentsModal"); }
 
 async function showCategory(category){
     current = category;
-    const c = CATEGORIES[category];
+    const c = categoryOf(category);
     document.querySelectorAll("#documentsGrid .document-folder-btn").forEach(b => b.classList.toggle("active", b.dataset.category === category));
     $("documentsListBox").style.display = "block";
     $("documentsListTitle").textContent = c.label;
@@ -36,7 +44,10 @@ async function loadFiles(){
     const list = $("documentsList");
     list.innerHTML = `<tr><td colspan="3">Učitavam...</td></tr>`;
     try{
-        if(current === "racuni"){
+        if(current === "racuni_cekanje"){
+            const receipts = await api.listInboxReceipts();
+            files = receipts.map(r => ({ bucket: "receipts", path: r.storage_path, name: receiptDisplayName(r), at: r.uploaded_at, note: r.note || "" }));
+        }else if(current === "racuni"){
             // Računi + arhiva plaćenih računa iz 1.x (prenesena migracijom, bez veze sa transakcijom).
             const [receipts, archived] = await Promise.all([api.listAllReceipts(), api.listDocuments("racuni")]);
             files = receipts.map(r => ({ bucket: "receipts", path: r.storage_path, name: receiptDisplayName(r), at: r.uploaded_at, note: r.transaction_id ? "uz transakciju" : "nepovezan" }))
@@ -46,7 +57,7 @@ async function loadFiles(){
             const docs = await api.listDocuments(current);
             files = docs.map(d => ({ bucket: CATEGORIES[current].bucket, path: d.storage_path, name: d.file_name, at: d.created_at, note: "" }));
         }
-        list.innerHTML = files.length === 0 ? `<tr><td colspan="3">Nema dokumenata</td></tr>`
+        list.innerHTML = files.length === 0 ? `<tr><td colspan="3">${current === "racuni_cekanje" ? "Nema računa na čekanju" : "Nema dokumenata"}</td></tr>`
             : files.map((f, i) => `<tr>
                 <td><button class="doc-name-btn" data-open="${i}">${escapeHtml(f.name)}</button>${f.note ? `<div class="doc-note">${escapeHtml(f.note)}</div>` : ""}</td>
                 <td>${escapeHtml(formatDateTime(f.at))}</td>

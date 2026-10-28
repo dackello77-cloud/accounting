@@ -99,6 +99,7 @@ Object.assign(window, {
     loadTransactionReceipts: receipts.loadTransactionReceipts,
     selectTransactionReceipt: receipts.selectTransactionReceipt,
     openDocumentsModal: documents.openDocumentsModal,
+    openPendingReceipts: documents.openPendingReceipts,
     closeDocumentsModal: documents.closeDocumentsModal,
     uploadStatement: documents.uploadStatement,
     openObracunRModal: obracunR.openObracunRModal,
