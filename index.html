@@ -825,6 +825,13 @@ tr.recv-payments > td{background:var(--surface-2)}
 .receipt-camera-btn{background:var(--accent)}
 .receipt-scan-preview{display:block;max-width:160px;max-height:220px;margin-top:10px;border:1px solid var(--border);border-radius:8px;background:#fff}
 .receipt-scan-preview[hidden]{display:none}
+.receipt-side{display:none}
+@media(min-width:901px){
+#receiptModal.has-preview .modal-box{width:1400px;max-width:98%}
+#receiptModal.has-preview .receipt-layout{display:grid;grid-template-columns:520px 1fr;gap:24px;align-items:start}
+#receiptModal.has-preview .receipt-side{display:block}
+#receiptModal .receipt-preview-box{height:calc(90vh - 120px)}
+}
 #dashboard .menu .mobile-receipt-button{margin-bottom:12px}
 @media(min-width:601px){#dashboard .menu .mobile-receipt-button{display:none}}
 .scan-modal{z-index:1100;background:#000;align-items:stretch}
@@ -1295,6 +1302,8 @@ td:has(> .obracun-r-del){text-align:center}
             <button class="close-btn" onclick="closeReceiptModal()">X</button>
         </div>
 
+        <div class="receipt-layout">
+        <div class="receipt-form">
         <div class="input-group">
             <label>Izaberite račun iz računara</label>
             <input type="file" id="receiptFile" accept="application/pdf,image/jpeg,image/png,image/heic,image/heif,.pdf,.jpg,.jpeg,.png,.heic,.heif" onchange="handleReceiptFileFallback()">
@@ -1322,6 +1331,11 @@ td:has(> .obracun-r-del){text-align:center}
         </button>
 
         <div id="receiptMessage" style="margin-top:15px;color:#22c55e;font-weight:bold;"></div>
+        </div>
+        <div class="receipt-side">
+            <div id="receiptFilePreview" class="receipt-preview-box"></div>
+        </div>
+        </div>
     </div>
 </div>
 

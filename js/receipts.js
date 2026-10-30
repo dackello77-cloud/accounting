@@ -52,10 +52,36 @@ function hideScanPreview(){
     preview.hidden = true;
 }
 
+// Desktop: izabrani fajl se prikazuje desno dok se upisuju podaci.
+let filePreviewUrl = null;
+
+function clearFilePreview(){
+    if(filePreviewUrl) URL.revokeObjectURL(filePreviewUrl);
+    filePreviewUrl = null;
+    $("receiptFilePreview").textContent = "";
+    $("receiptModal").classList.remove("has-preview");
+}
+
+function showFilePreview(file){
+    clearFilePreview();
+    if(!file) return;
+    const box = $("receiptFilePreview");
+    const type = contentTypeOf(file);
+    $("receiptModal").classList.add("has-preview");
+    if(type !== "application/pdf" && type !== "image/jpeg" && type !== "image/png"){
+        box.textContent = "Pregled nije dostupan za ovaj format (HEIC). Račun se može sačuvati.";
+        return;
+    }
+    filePreviewUrl = URL.createObjectURL(file);
+    box.innerHTML = type === "application/pdf" ? `<iframe title="Račun"></iframe>` : `<img alt="Račun">`;
+    box.firstElementChild.src = filePreviewUrl;
+}
+
 function resetFileSelection(){
     $("receiptFile").value = "";
     $("receiptCamera").value = "";
     hideScanPreview();
+    clearFilePreview();
     $("receiptFileName").textContent = "";
     localFile = null;
     fileHandle = null;
@@ -78,7 +104,10 @@ export function openReceiptModal(){
     });
 }
 
-export function closeReceiptModal(){ hideModal("receiptModal"); }
+export function closeReceiptModal(){
+    hideModal("receiptModal");
+    clearFilePreview();
+}
 
 // Chrome/Edge: izbor fajla sa dozvolom da se original obriše posle uspešnog čuvanja (kao 1.x).
 export async function chooseReceiptFile(){
@@ -93,6 +122,7 @@ export async function chooseReceiptFile(){
         fileHandle = handle;
         localFile = file;
         canDeleteOriginal = permission === "granted";
+        showFilePreview(file);
         $("receiptFileName").textContent = file.name + (canDeleteOriginal
             ? " - biće obrisan sa računara posle uspešnog čuvanja"
             : " - nema dozvole za automatsko brisanje");
@@ -123,6 +153,7 @@ export async function handleReceiptCamera(){
     if(!scanned) return;
     resetFileSelection();
     localFile = scanned.pdf;
+    showFilePreview(scanned.pdf);
     const preview = $("receiptScanPreview");
     preview.src = URL.createObjectURL(scanned.preview);
     preview.hidden = false;
@@ -135,6 +166,7 @@ export function handleReceiptFileFallback(){
     localFile = file || null;
     fileHandle = null;
     canDeleteOriginal = false;
+    showFilePreview(file);
     $("receiptFileName").textContent = file ? file.name + " - pregledač ne dozvoljava automatsko brisanje originala" : "";
 }
 
