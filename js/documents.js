@@ -5,6 +5,7 @@ import { CATEGORIES, storageKey, shortId, checkUploadFile, contentTypeOf } from 
 import { openStorageFile } from "./docsave.js";
 import { openViewer } from "./viewer.js";
 import { receiptDisplayName } from "./receipts.js";
+import { editInvoice } from "./invoice.js";
 import { openClaimEditor, deleteReceiptConfirmed } from "./receivables.js";
 
 const $ = (id) => document.getElementById(id);
@@ -56,14 +57,15 @@ async function loadFiles(){
                 .concat(archived.map(d => ({ bucket: "receipts", path: d.storage_path, name: d.file_name, at: d.created_at, note: "arhiva" })))
                 .sort((a, b) => String(b.at).localeCompare(String(a.at)));
         }else{
-            const docs = await api.listDocuments(current);
-            files = docs.map(d => ({ bucket: CATEGORIES[current].bucket, path: d.storage_path, name: d.file_name, at: d.created_at, note: "" }));
+            const [docs, invoices] = await Promise.all([api.listDocuments(current), current === "fakture" ? api.listInvoicePdfs() : []]);
+            const invoiceByPath = new Map(invoices.map(v => [v.pdf_path, v.id]));
+            files = docs.map(d => ({ bucket: CATEGORIES[current].bucket, path: d.storage_path, name: d.file_name, at: d.created_at, note: "", invoiceId: invoiceByPath.get(d.storage_path) }));
         }
         list.innerHTML = files.length === 0 ? `<tr><td colspan="3">${current === "racuni_cekanje" ? "Nema računa na čekanju" : "Nema dokumenata"}</td></tr>`
             : files.map((f, i) => `<tr>
                 <td><button class="doc-name-btn" data-open="${i}">${escapeHtml(f.name)}</button>${f.note ? `<div class="doc-note">${escapeHtml(f.note)}</div>` : ""}</td>
                 <td>${escapeHtml(formatDateTime(f.at))}</td>
-                <td class="doc-actions">${f.receipt ? `<button data-claim="${i}">${f.receipt.amount != null ? "Podaci" : "Unesi podatke"}</button><button class="doc-delete" data-delete="${i}">Obriši</button>` : ""}<button data-open="${i}">Otvori</button><button data-download="${i}">Preuzmi</button></td>
+                <td class="doc-actions">${f.invoiceId ? `<button data-edit-invoice="${i}">Prepravi</button>` : ""}${f.receipt ? `<button data-claim="${i}">${f.receipt.amount != null ? "Podaci" : "Unesi podatke"}</button><button class="doc-delete" data-delete="${i}">Obriši</button>` : ""}<button data-open="${i}">Otvori</button><button data-download="${i}">Preuzmi</button></td>
             </tr>`).join("");
     }catch(error){
         list.innerHTML = `<tr><td colspan="3">${escapeHtml(errorMessage(error, "Greška pri učitavanju dokumenata."))}</td></tr>`;
@@ -103,6 +105,19 @@ export function initDocuments(){
     $("documentsList").addEventListener("click", async (event) => {
         const claim = event.target.closest("button[data-claim]");
         if(claim){ openClaimEditor(files[Number(claim.dataset.claim)].receipt, loadFiles); return; }
+        const edit = event.target.closest("button[data-edit-invoice]");
+        if(edit){
+            edit.disabled = true;
+            $("documentsStatus").textContent = "";
+            try{
+                if(await editInvoice(files[Number(edit.dataset.editInvoice)].invoiceId)) closeDocumentsModal();
+            }catch(error){
+                $("documentsStatus").textContent = errorMessage(error, "Fakturu nije moguće otvoriti za prepravku.");
+            }finally{
+                edit.disabled = false;
+            }
+            return;
+        }
         const del = event.target.closest("button[data-delete]");
         if(del){ deleteReceiptConfirmed(files[Number(del.dataset.delete)].receipt, loadFiles); return; }
         const open = event.target.closest("button[data-open]");

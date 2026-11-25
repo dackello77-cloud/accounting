@@ -219,6 +219,16 @@ export function upsertDocument(category, storagePath, fileName){
     return run(sb.from("documents").upsert({ category, storage_path: storagePath, file_name: fileName }, { onConflict: "storage_path" }));
 }
 
+// Dokument dobija novu putanju i naziv (npr. fakturi je promenjen broj); isti red, bez duplikata.
+export async function moveDocument(oldPath, newPath, fileName){
+    try{
+        await run(sb.from("documents").update({ storage_path: newPath, file_name: fileName }).eq("storage_path", oldPath));
+    }catch(error){
+        // Red za novu putanju već postoji: upsertDocument ga ažurira.
+        if(error.code !== "23505") throw error;
+    }
+}
+
 export function listDocuments(category){
     return run(sb.from("documents").select("*").eq("category", category).order("created_at", { ascending: false }));
 }
@@ -327,6 +337,15 @@ export function saveInvoice(invoice, items){
 
 export function setInvoicePdf(id, path){
     return run(sb.from("invoices").update({ pdf_path: path }).eq("id", id));
+}
+
+// Izdate fakture sa sačuvanim PDF-om (veza dokumenta i fakture je pdf_path).
+export function listInvoicePdfs(){
+    return run(sb.from("invoices").select("id, number, pdf_path").eq("status", "izdata").not("pdf_path", "is", null));
+}
+
+export function getInvoice(id){
+    return run(sb.from("invoices").select("*, partners(*), invoice_items(*)").eq("id", id).single());
 }
 
 export function listInvoiceCompanies(){

@@ -11,6 +11,9 @@ let companies = [];
 let banks = [];
 let articles = [];
 let invoiceId = null;      // posle prvog čuvanja
+let editing = false;       // otvorena preko "Prepravi"
+let pdfPath = "";          // PDF sačuvane fakture
+let editCompany = null;    // kupac fakture koja se prepravlja (i kad više nije aktivan)
 let proposedNumber = "";   // predlog iz next_invoice_number
 let emails = null;
 let saving = null;         // da SAVE PDF i SEND EMAIL ne krenu dvaput istovremeno
@@ -25,8 +28,15 @@ function bankFor(company){
     return banks.some(b => b.id === id && b.active) ? id : (banks.find(b => b.is_default) || banks[0])?.id || "";
 }
 
+// Iz menija: posle prepravke se kreće od nove fakture, da se poslata ne prepiše greškom.
 export function openInvoiceModal(){
+    if(editing && !saving){ newInvoice(); return; }
+    showInvoice();
+}
+
+function showInvoice(){
     showModal("invoiceModal");
+    $("invoiceTitle").textContent = editing ? "Prepravka fakture " + $("invoiceNumber").value : "Faktura";
     if(!emails){
         emails = new EmailPicker({ selectId: "invoiceEmailSelect", chipsId: "invoiceEmailChips", nameId: "invoiceNewEmailName", addressId: "invoiceNewEmailAddress" });
     }
@@ -37,8 +47,51 @@ export function openInvoiceModal(){
         updateInvoiceDueDate();
     }
     if($("invoiceItemRows").children.length === 0) addInvoiceItem();
-    loadInitialData();
+    const loaded = loadInitialData();
     renderInvoicePreview();
+    return loaded;
+}
+
+const hasUnsavedInput = () => !invoiceId && ($("invoiceCompany").value || getItems().length);
+
+// Prepravka sačuvane (i poslate) fakture: isti zapis i isti PDF, pa ponovno slanje.
+export async function editInvoice(id){
+    if(saving) throw new UserError("Sačekajte da se završi čuvanje fakture.");
+    const inv = await api.getInvoice(id);
+    if(hasUnsavedInput() && !confirm("Nova faktura koju ste započeli nije sačuvana. Odbaciti je i otvoriti prepravku?")) return false;
+
+    resetInvoice();
+    invoiceId = inv.id;
+    editing = true;
+    pdfPath = inv.pdf_path || "";
+    editCompany = inv.partners;
+    $("invoiceNumber").value = inv.number;
+    $("invoiceIssueDate").value = inv.issue_date || todayIso();
+    $("invoicePaymentDays").value = inv.payment_days ?? 0;
+    $("invoiceDueDate").value = inv.due_date || "";
+    $("invoicePlace").value = inv.place || "Niš, Srbija";
+    document.querySelector(`input[name="invoiceCurrency"][value="${inv.currency === "USD" ? "USD" : "RSD"}"]`).checked = true;
+    for(const item of [...inv.invoice_items].sort((a, b) => a.position - b.position)){
+        const tr = addInvoiceItem();
+        tr.querySelector(".invoice-service").value = item.service || "";
+        tr.querySelector(".invoice-qty").value = item.qty;
+        tr.querySelector(".invoice-price").value = item.price;
+    }
+    // Opcije odmah, pre učitavanja lista, da loadInitialData zadrži izbor.
+    if(editCompany) $("invoiceCompany").add(new Option(editCompany.name, editCompany.id));
+    $("invoiceCompany").value = editCompany?.id || "";
+    $("invoiceCompany").searchSync?.();
+    if(inv.bank_id) $("invoiceBank").add(new Option("", inv.bank_id));
+    $("invoiceBank").value = inv.bank_id || "";
+    $("invoiceAddress").value = inv.company_address || "";
+    $("invoiceZiro").value = inv.company_bank_account || "";
+    $("invoiceEmailBox").style.display = "block";
+    const loaded = showInvoice();
+    emails.selected = [];
+    emails.setAuto((editCompany?.emails || []).map(email => ({ name: editCompany.name, email })));
+    if(!inv.invoice_items.length) $("invoiceStatus").textContent = "Stavke ove fakture nisu sačuvane u bazi; unesite ih ponovo.";
+    await loaded;
+    return true;
 }
 
 export function closeInvoiceModal(){ hideModal("invoiceModal"); }
@@ -52,6 +105,7 @@ async function loadInitialData(){
         }
         const selected = $("invoiceCompany").value;
         companies = await api.listInvoiceCompanies();
+        if(editCompany && !companies.some(c => c.id === editCompany.id)) companies.push(editCompany);
         $("invoiceCompany").innerHTML = '<option value="">Izaberite kupca</option>' +
             companies.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join("");
         $("invoiceCompany").value = selected;
@@ -72,7 +126,15 @@ async function loadInitialData(){
 
 // Nova faktura: prazan obrazac, novi predlog broja.
 export function newInvoice(){
+    resetInvoice();
+    showInvoice();
+}
+
+function resetInvoice(){
     invoiceId = null;
+    editing = false;
+    pdfPath = "";
+    editCompany = null;
     proposedNumber = "";
     $("invoiceNumber").value = "";
     $("invoiceIssueDate").value = "";
@@ -86,7 +148,6 @@ export function newInvoice(){
     $("invoiceEmailMessage").value = "";
     $("invoiceStatus").textContent = "";
     document.querySelector('input[name="invoiceCurrency"][value="RSD"]').checked = true;
-    openInvoiceModal();
 }
 
 export function fillInvoiceCompany(){
@@ -108,6 +169,7 @@ export function addInvoiceItem(){
         <td><button class="invoice-del" onclick="this.closest('tr').remove();renderInvoicePreview();">X</button></td>`;
     $("invoiceItemRows").appendChild(tr);
     renderInvoicePreview();
+    return tr;
 }
 
 export function fillInvoiceArticle(input){
@@ -287,10 +349,12 @@ async function persistInvoice(){
 
     invoiceId = result.id;
     $("invoiceNumber").value = result.number;
+    if(editing) $("invoiceTitle").textContent = "Prepravka fakture " + result.number;
     renderInvoicePreview();
 
-    const doc = await savePdfDocument({ html: buildInvoiceHtml(), category: "fakture", fileName: invoiceFileName(result.number), margin: 12 });
+    const doc = await savePdfDocument({ html: buildInvoiceHtml(), category: "fakture", fileName: invoiceFileName(result.number), margin: 12, replacePath: pdfPath });
     await api.setInvoicePdf(invoiceId, doc.path);
+    pdfPath = doc.path;
     return { ...doc, id: invoiceId, number: result.number };
 }
 

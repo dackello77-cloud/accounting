@@ -4,12 +4,14 @@ import { htmlToPdfBlob } from "./pdf.js";
 import { CATEGORIES, storageKey } from "./files.js";
 
 // subfolder: npr. id transakcije, da isti naziv za dve transakcije ne prepiše fajl.
+// replacePath: ranija putanja istog dokumenta; ako se promenila, postojeći red prelazi na novu.
 // Isti category + subfolder + fileName → isti fajl se prepisuje (upsert).
-export async function savePdfDocument({ html, category, fileName, subfolder = "", orientation = "portrait", margin = 10 }){
+export async function savePdfDocument({ html, category, fileName, subfolder = "", orientation = "portrait", margin = 10, replacePath = "" }){
     const blob = await htmlToPdfBlob(html, { orientation, margin });
     const cat = CATEGORIES[category];
     const path = [cat.folder, subfolder, storageKey(fileName)].filter(Boolean).join("/");
     await api.uploadFile(cat.bucket, path, blob, { contentType: "application/pdf", upsert: true });
+    if(replacePath && replacePath !== path) await api.moveDocument(replacePath, path, fileName);
     await api.upsertDocument(category, path, fileName);
     return { bucket: cat.bucket, path, fileName };
 }
